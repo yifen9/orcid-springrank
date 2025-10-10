@@ -1,0 +1,38 @@
+name: image
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "Dockerfile"
+      - "Project.toml"
+      - "Manifest.toml"
+      - ".github/workflows/image.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: docker/setup-buildx-action@master
+      - uses: docker/login-action@master
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@master
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/orcid-springrank:latest
+            ghcr.io/${{ github.repository_owner }}/orcid-springrank:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/orcid-springrank:cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/orcid-springrank:cache,mode=max

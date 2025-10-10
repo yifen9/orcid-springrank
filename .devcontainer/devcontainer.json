@@ -1,0 +1,13 @@
+{
+  "dockerComposeFile": "compose.yaml",
+  "service": "orcid-springrank",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "julialang.language-julia"
+      ]
+    }
+  }
+}

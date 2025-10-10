@@ -1,0 +1,19 @@
+services:
+  orcid-springrank:
+    image: ghcr.io/yifen9/orcid-springrank
+    container_name: orcid-springrank
+    working_dir: /workspace
+    environment:
+      - JULIA_DEPOT_PATH=/opt/julia-depot
+      - JULIA_PROJECT=@.
+      - JULIA_NUM_THREADS=auto
+    volumes:
+      - "..:/workspace"
+      - "julia-depot:/opt/julia-depot"
+    command: >
+      bash -c "
+        julia -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()' &&
+        exec sleep infinity
+      "
+volumes:
+  julia-depot:
