@@ -2,7 +2,7 @@
 
 julia_version = "1.12.0"
 manifest_format = "2.0"
-project_hash = "96efa4f513889fa8baf88a042d401cf14e1b5471"
+project_hash = "60c4240400b1da3b6dcd5150828381a6938943ea"
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -16,6 +16,12 @@ version = "1.11.0"
 git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
 version = "0.1.9"
+
+[[deps.BitIntegers]]
+deps = ["Random"]
+git-tree-sha1 = "f98cfeaba814d9746617822032d50a31c9926604"
+uuid = "c3b6d118-76ef-56ca-8cc7-ebb389d030a1"
+version = "0.3.5"
 
 [[deps.CSV]]
 deps = ["CodecZlib", "Dates", "FilePathsBase", "InlineStrings", "Mmap", "Parsers", "PooledArrays", "PrecompileTools", "SentinelArrays", "Tables", "Unicode", "WeakRefStrings", "WorkerUtilities"]
@@ -61,6 +67,11 @@ git-tree-sha1 = "249fe38abf76d48563e2f4556bebd215aa317e15"
 uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 version = "4.1.1"
 
+[[deps.DBInterface]]
+git-tree-sha1 = "a444404b3f94deaa43ca2a58e18153a82695282b"
+uuid = "a10d1c49-ce27-4219-8d33-6db1a4562965"
+version = "2.6.1"
+
 [[deps.DataAPI]]
 git-tree-sha1 = "abe83f3a2f1b857aac70ef8b269080af17764bbe"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
@@ -88,6 +99,18 @@ deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
 
+[[deps.DuckDB]]
+deps = ["DBInterface", "Dates", "DuckDB_jll", "FixedPointDecimals", "Tables", "UUIDs", "WeakRefStrings"]
+git-tree-sha1 = "6cdf0e67cbf9786c173d706651ee9409fb907118"
+uuid = "d2f5444f-75bc-4fdf-ac35-56f514c445e1"
+version = "1.4.1"
+
+[[deps.DuckDB_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "cb9672522ef3b100b4bb25af4e8880cec3ab5043"
+uuid = "2cbbab25-fc8b-58cf-88d4-687a02676033"
+version = "1.4.1+0"
+
 [[deps.ExceptionUnwrapping]]
 deps = ["Test"]
 git-tree-sha1 = "d36f682e590a83d63d1c7dbd287573764682d12a"
@@ -104,6 +127,12 @@ weakdeps = ["Mmap", "Test"]
     [deps.FilePathsBase.extensions]
     FilePathsBaseMmapExt = "Mmap"
     FilePathsBaseTestExt = "Test"
+
+[[deps.FixedPointDecimals]]
+deps = ["BitIntegers", "Parsers"]
+git-tree-sha1 = "a2d9318c442ee455e36e9e6a5a8fa7f9d34311f8"
+uuid = "fb4d412d-6eee-574d-9565-ede6634db7b0"
+version = "0.6.4"
 
 [[deps.Future]]
 deps = ["Random"]
@@ -220,9 +249,9 @@ version = "1.1.9"
 
 [[deps.MbedTLS_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "45ad1a08605aabad6f1e7711daa84370655b4e86"
+git-tree-sha1 = "3cce3511ca2c6f87b19c34ffc623417ed2798cbd"
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
-version = "2.28.6+2"
+version = "2.28.10+0"
 
 [[deps.Missings]]
 deps = ["DataAPI"]

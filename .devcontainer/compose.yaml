@@ -1,6 +1,9 @@
 services:
   orcid-springrank:
     image: ghcr.io/yifen9/orcid-springrank
+    build:
+      context: ..
+      dockerfile: Dockerfile
     container_name: orcid-springrank
     working_dir: /workspace
     environment:
@@ -13,6 +16,7 @@ services:
     command: >
       bash -c "
         julia -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()' &&
+        just --version &&
         exec sleep infinity
       "
 volumes:
