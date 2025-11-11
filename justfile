@@ -27,11 +27,17 @@ dev:
 
 DATE := "2025_10"
 
-extract:
+do-01:
 	julia --project=. scripts/01_extract_source_to_ndjson.jl {{DATE}}
 
-structure:
+do-02:
 	julia --project=. scripts/02_structure_ndjson_to_parquet.jl {{DATE}}
 
-curate:
+do-03:
 	julia --project=. scripts/03_curate_min_dims.jl {{DATE}}
+
+do-04:
+	julia --project=. scripts/04_field_frequency.jl {{DATE}}
+
+do-04a:
+	julia --project=. scripts/04a_country_normalize.jl {{DATE}}

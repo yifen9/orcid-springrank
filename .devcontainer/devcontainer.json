@@ -9,8 +9,6 @@
         "julialang.language-julia",
         "tamasfe.even-better-toml",
         "nefrob.vscode-just-syntax",
-        "mtxr.sqltools",
-        "evidence.sqltools-bigquery-driver",
         "dvirtz.parquet-viewer"
       ]
     }
