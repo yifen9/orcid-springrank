@@ -1,5 +1,0 @@
-﻿Count,OrgFlow,OriDisOrgID,DesDisOrgID,OriOrgLocationCountry,DesOrgLocationCountry,OriOrgLocationDetails,DesOrgLocationDetails,OriOrgName,DesOrgName,OriOrgType,DesOrgType
-2,https://ror.org/01zw9zg68 -> https://ror.org/01zw9zg68,https://ror.org/01zw9zg68,https://ror.org/01zw9zg68,LR,LR,Monrovia,Monrovia,African Methodist Episcopal University,African Methodist Episcopal University,education,education
-2,https://ror.org/01zw9zg68 -> https://ror.org/03fgk0a27,https://ror.org/01zw9zg68,https://ror.org/03fgk0a27,LR,LR,Monrovia,Monrovia,African Methodist Episcopal University,United Methodist University,education,education
-1,https://ror.org/05589zr38 -> https://ror.org/0440cy367,https://ror.org/05589zr38,https://ror.org/0440cy367,LR,LR,Gbarnga,Monrovia,Cuttington University,University of Liberia,education,education
-3,https://ror.org/05589zr38 -> https://ror.org/05589zr38,https://ror.org/05589zr38,https://ror.org/05589zr38,LR,LR,Gbarnga,Gbarnga,Cuttington University,Cuttington University,education,education

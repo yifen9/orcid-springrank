@@ -1,5 +1,0 @@
-﻿Count,OrgFlow,OriDisOrgID,DesDisOrgID,OriOrgLocationCountry,DesOrgLocationCountry,OriOrgLocationDetails,DesOrgLocationDetails,OriOrgName,DesOrgName,OriOrgType,DesOrgType
-2,https://ror.org/001pma463 -> https://ror.org/001pma463,https://ror.org/001pma463,https://ror.org/001pma463,TG,TG,Kara,Kara,University of Kara,University of Kara,education,education
-2,https://ror.org/00wc07928 -> https://ror.org/001pma463,https://ror.org/00wc07928,https://ror.org/001pma463,TG,TG,Lomé,Kara,University of Lomé,University of Kara,education,education
-9,https://ror.org/00wc07928 -> https://ror.org/00wc07928,https://ror.org/00wc07928,https://ror.org/00wc07928,TG,TG,Lomé,Lomé,University of Lomé,University of Lomé,education,education
-1,https://ror.org/02xyh0e61 -> https://ror.org/02xyh0e61,https://ror.org/02xyh0e61,https://ror.org/02xyh0e61,TG,TG,Lomé,Lomé,École Africaine des Métiers de l'Architecture et de l'Urbanisme,École Africaine des Métiers de l'Architecture et de l'Urbanisme,education,education

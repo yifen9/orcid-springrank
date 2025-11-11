@@ -1,8 +1,0 @@
-﻿Count,OrgFlow,OriDisOrgID,DesDisOrgID,OriOrgLocationCountry,DesOrgLocationCountry,OriOrgLocationDetails,DesOrgLocationDetails,OriOrgName,DesOrgName,OriOrgType,DesOrgType
-65,https://ror.org/01t20sn94 -> https://ror.org/01t20sn94,https://ror.org/01t20sn94,https://ror.org/01t20sn94,JM,JM,Kingston,Kingston,University of the West Indies System,University of the West Indies System,education,education
-10,https://ror.org/01t20sn94 -> https://ror.org/02w1kdc51,https://ror.org/01t20sn94,https://ror.org/02w1kdc51,JM,JM,Kingston,Kingston,University of the West Indies System,"University of Technology, Jamaica",education,education
-1,https://ror.org/01t20sn94 -> https://ror.org/02wbvek51,https://ror.org/01t20sn94,https://ror.org/02wbvek51,JM,JM,Kingston,Kingston,University of the West Indies System,Edna Manley College of the Visual and Performing Arts,education,education
-1,https://ror.org/01t20sn94 -> https://ror.org/03w44ry84,https://ror.org/01t20sn94,https://ror.org/03w44ry84,JM,JM,Kingston,Kingston,University of the West Indies System,Mico University College,education,education
-2,https://ror.org/02w1kdc51 -> https://ror.org/02w1kdc51,https://ror.org/02w1kdc51,https://ror.org/02w1kdc51,JM,JM,Kingston,Kingston,"University of Technology, Jamaica","University of Technology, Jamaica",education,education
-1,https://ror.org/03w44ry84 -> https://ror.org/01t20sn94,https://ror.org/03w44ry84,https://ror.org/01t20sn94,JM,JM,Kingston,Kingston,Mico University College,University of the West Indies System,education,education
-4,https://ror.org/04yv47b75 -> https://ror.org/04yv47b75,https://ror.org/04yv47b75,https://ror.org/04yv47b75,JM,JM,Mandeville,Mandeville,Northern Caribbean University,Northern Caribbean University,education,education

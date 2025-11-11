@@ -1,5 +1,0 @@
-﻿Count,OrgFlow,OriDisOrgID,DesDisOrgID,OriOrgLocationCountry,DesOrgLocationCountry,OriOrgLocationDetails,DesOrgLocationDetails,OriOrgName,DesOrgName,OriOrgType,DesOrgType
-1,https://ror.org/004fa4s18 -> https://ror.org/023rbaw78,https://ror.org/004fa4s18,https://ror.org/023rbaw78,ML,ML,Bamako,Bamako,Ecole Nationale d’Ingénieurs – Abderhamane Baba Touré,"Université des Sciences, des Techniques et des Technologies de Bamako",education,education
-4,https://ror.org/023rbaw78 -> https://ror.org/023rbaw78,https://ror.org/023rbaw78,https://ror.org/023rbaw78,ML,ML,Bamako,Bamako,"Université des Sciences, des Techniques et des Technologies de Bamako","Université des Sciences, des Techniques et des Technologies de Bamako",education,education
-1,https://ror.org/02s6w8y22 -> https://ror.org/023rbaw78,https://ror.org/02s6w8y22,https://ror.org/023rbaw78,ML,ML,Bamako,Bamako,University of Bamako,"Université des Sciences, des Techniques et des Technologies de Bamako",education,education
-1,https://ror.org/02s6w8y22 -> https://ror.org/02s6w8y22,https://ror.org/02s6w8y22,https://ror.org/02s6w8y22,ML,ML,Bamako,Bamako,University of Bamako,University of Bamako,education,education

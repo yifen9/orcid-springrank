@@ -1,8 +1,0 @@
-﻿Count,OrgFlow,OriDisOrgID,DesDisOrgID,OriOrgLocationCountry,DesOrgLocationCountry,OriOrgLocationDetails,DesOrgLocationDetails,OriOrgName,DesOrgName,OriOrgType,DesOrgType
-1,https://ror.org/011d6dm60 -> https://ror.org/011d6dm60,https://ror.org/011d6dm60,https://ror.org/011d6dm60,NA,NA,Windhoek,Windhoek,International University of Management,International University of Management,education,education
-1,https://ror.org/011d6dm60 -> https://ror.org/016xje988,https://ror.org/011d6dm60,https://ror.org/016xje988,NA,NA,Windhoek,Windhoek,International University of Management,University of Namibia,education,education
-33,https://ror.org/016xje988 -> https://ror.org/016xje988,https://ror.org/016xje988,https://ror.org/016xje988,NA,NA,Windhoek,Windhoek,University of Namibia,University of Namibia,education,education
-2,https://ror.org/016xje988 -> https://ror.org/03gg1ey66,https://ror.org/016xje988,https://ror.org/03gg1ey66,NA,NA,Windhoek,Windhoek,University of Namibia,Namibia University of Science and Technology,education,education
-1,https://ror.org/01tqmg467 -> https://ror.org/016xje988,https://ror.org/01tqmg467,https://ror.org/016xje988,NA,NA,Windhoek,Windhoek,Ministry of Health and Social Services,University of Namibia,government,education
-6,https://ror.org/03gg1ey66 -> https://ror.org/016xje988,https://ror.org/03gg1ey66,https://ror.org/016xje988,NA,NA,Windhoek,Windhoek,Namibia University of Science and Technology,University of Namibia,education,education
-4,https://ror.org/03gg1ey66 -> https://ror.org/03gg1ey66,https://ror.org/03gg1ey66,https://ror.org/03gg1ey66,NA,NA,Windhoek,Windhoek,Namibia University of Science and Technology,Namibia University of Science and Technology,education,education

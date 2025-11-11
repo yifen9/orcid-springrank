@@ -1,6 +1,0 @@
-﻿Count,OrgFlow,OriDisOrgID,DesDisOrgID,OriOrgLocationCountry,DesOrgLocationCountry,OriOrgLocationDetails,DesOrgLocationDetails,OriOrgName,DesOrgName,OriOrgType,DesOrgType
-1,https://ror.org/02w4gwv87 -> https://ror.org/00zy1vd16,https://ror.org/02w4gwv87,https://ror.org/00zy1vd16,MG,MG,Antananarivo,Antananarivo,University of Antananarivo,Centre National de Recherches sur l'Environnement,education,government
-1,https://ror.org/02w4gwv87 -> https://ror.org/02np7dp24,https://ror.org/02w4gwv87,https://ror.org/02np7dp24,MG,MG,Antananarivo,Antananarivo,University of Antananarivo,Institute Malgache De Recherches Appliquées,education,nonprofit
-22,https://ror.org/02w4gwv87 -> https://ror.org/02w4gwv87,https://ror.org/02w4gwv87,https://ror.org/02w4gwv87,MG,MG,Antananarivo,Antananarivo,University of Antananarivo,University of Antananarivo,education,education
-2,https://ror.org/02w4gwv87 -> https://ror.org/03fkjvy27,https://ror.org/02w4gwv87,https://ror.org/03fkjvy27,MG,MG,Antananarivo,Antananarivo,University of Antananarivo,Institut Pasteur de Madagascar,education,nonprofit
-2,https://ror.org/02w4gwv87 -> https://ror.org/03g407536,https://ror.org/02w4gwv87,https://ror.org/03g407536,MG,MG,Antananarivo,Toliara,University of Antananarivo,University of Toliara,education,education

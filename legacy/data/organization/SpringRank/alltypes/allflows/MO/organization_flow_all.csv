@@ -1,8 +1,0 @@
-﻿Count,OrgFlow,OriDisOrgID,DesDisOrgID,OriOrgLocationCountry,DesOrgLocationCountry,OriOrgLocationDetails,DesOrgLocationDetails,OriOrgName,DesOrgName,OriOrgType,DesOrgType
-51,https://ror.org/01r4q9n85 -> https://ror.org/01r4q9n85,https://ror.org/01r4q9n85,https://ror.org/01r4q9n85,MO,MO,Macao,Macao,University of Macau,University of Macau,education,education
-12,https://ror.org/01r4q9n85 -> https://ror.org/02avx9m34,https://ror.org/01r4q9n85,https://ror.org/02avx9m34,MO,MO,Macao,Taipa,University of Macau,Macau University of Science and Technology Foundation,education,nonprofit
-5,https://ror.org/01r4q9n85 -> https://ror.org/02sf5td35,https://ror.org/01r4q9n85,https://ror.org/02sf5td35,MO,MO,Macao,Macao,University of Macau,Macao Polytechnic University,education,education
-1,https://ror.org/02avx9m34 -> https://ror.org/01r4q9n85,https://ror.org/02avx9m34,https://ror.org/01r4q9n85,MO,MO,Taipa,Macao,Macau University of Science and Technology Foundation,University of Macau,nonprofit,education
-16,https://ror.org/02avx9m34 -> https://ror.org/02avx9m34,https://ror.org/02avx9m34,https://ror.org/02avx9m34,MO,MO,Taipa,Taipa,Macau University of Science and Technology Foundation,Macau University of Science and Technology Foundation,nonprofit,nonprofit
-1,https://ror.org/02sf5td35 -> https://ror.org/01r4q9n85,https://ror.org/02sf5td35,https://ror.org/01r4q9n85,MO,MO,Macao,Macao,Macao Polytechnic University,University of Macau,education,education
-1,https://ror.org/02sf5td35 -> https://ror.org/02sf5td35,https://ror.org/02sf5td35,https://ror.org/02sf5td35,MO,MO,Macao,Macao,Macao Polytechnic University,Macao Polytechnic University,education,education

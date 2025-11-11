@@ -1,9 +1,0 @@
-﻿Count,OrgFlow,OriDisOrgID,DesDisOrgID,OriOrgLocationCountry,DesOrgLocationCountry,OriOrgLocationDetails,DesOrgLocationDetails,OriOrgName,DesOrgName,OriOrgType,DesOrgType
-1,https://ror.org/01pxe3r04 -> https://ror.org/01pxe3r04,https://ror.org/01pxe3r04,https://ror.org/01pxe3r04,OM,OM,Nizwá,Nizwá,University of Nizwa,University of Nizwa,education,education
-4,https://ror.org/01pxe3r04 -> https://ror.org/04wq8zb47,https://ror.org/01pxe3r04,https://ror.org/04wq8zb47,OM,OM,Nizwá,Muscat,University of Nizwa,Sultan Qaboos University,education,education
-1,https://ror.org/024we4p93 -> https://ror.org/05d5f5m07,https://ror.org/024we4p93,https://ror.org/05d5f5m07,OM,OM,Rustaq,Salalah,Rustaq College of Education,Dhofar University,education,education
-2,https://ror.org/03z34n548 -> https://ror.org/04wq8zb47,https://ror.org/03z34n548,https://ror.org/04wq8zb47,OM,OM,Muscat,Muscat,Middle East College,Sultan Qaboos University,education,education
-1,https://ror.org/04wq8zb47 -> https://ror.org/01pxe3r04,https://ror.org/04wq8zb47,https://ror.org/01pxe3r04,OM,OM,Muscat,Nizwá,Sultan Qaboos University,University of Nizwa,education,education
-1,https://ror.org/04wq8zb47 -> https://ror.org/0353zfd89,https://ror.org/04wq8zb47,https://ror.org/0353zfd89,OM,OM,Muscat,Şalālah,Sultan Qaboos University,Sultan Qaboos Hospital,education,healthcare
-1,https://ror.org/04wq8zb47 -> https://ror.org/03tcppy59,https://ror.org/04wq8zb47,https://ror.org/03tcppy59,OM,OM,Muscat,Muscat,Sultan Qaboos University,The Research Council,education,government
-38,https://ror.org/04wq8zb47 -> https://ror.org/04wq8zb47,https://ror.org/04wq8zb47,https://ror.org/04wq8zb47,OM,OM,Muscat,Muscat,Sultan Qaboos University,Sultan Qaboos University,education,education

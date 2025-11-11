@@ -1,5 +1,0 @@
-﻿Count,OrgFlow,OriDisOrgID,DesDisOrgID,OriOrgLocationCountry,DesOrgLocationCountry,OriOrgLocationDetails,DesOrgLocationDetails,OriOrgName,DesOrgName,OriOrgType,DesOrgType
-1,https://ror.org/00yk3tm64 -> https://ror.org/00yk3tm64,https://ror.org/00yk3tm64,https://ror.org/00yk3tm64,GA,GA,Libreville,Libreville,Université des Sciences de la Santé,Université des Sciences de la Santé,education,education
-1,https://ror.org/01wyqb997 -> https://ror.org/01wyqb997,https://ror.org/01wyqb997,https://ror.org/01wyqb997,GA,GA,Franceville,Franceville,Centre International de Recherches Médicales de Franceville,Centre International de Recherches Médicales de Franceville,other,other
-1,https://ror.org/03f0njg03 -> https://ror.org/00rg88503,https://ror.org/03f0njg03,https://ror.org/00rg88503,GA,GA,Franceville,Lambaréné,Université des Sciences et Techniques de Masuku,Centre de Recherche Médicales de Lambaréné,education,facility
-1,https://ror.org/03f0njg03 -> https://ror.org/03f0njg03,https://ror.org/03f0njg03,https://ror.org/03f0njg03,GA,GA,Franceville,Franceville,Université des Sciences et Techniques de Masuku,Université des Sciences et Techniques de Masuku,education,education

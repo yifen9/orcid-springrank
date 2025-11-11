@@ -1,8 +1,0 @@
-﻿Count,OrgFlow,OriDisOrgID,DesDisOrgID,OriOrgLocationCountry,DesOrgLocationCountry,OriOrgLocationDetails,DesOrgLocationDetails,OriOrgName,DesOrgName,OriOrgType,DesOrgType
-2,https://ror.org/004nyzb81 -> https://ror.org/004nyzb81,https://ror.org/004nyzb81,https://ror.org/004nyzb81,BO,BO,Santa Cruz de la Sierra,Santa Cruz de la Sierra,Universidad Privada de Santa Cruz de la Sierra,Universidad Privada de Santa Cruz de la Sierra,education,education
-1,https://ror.org/00pfv5508 -> https://ror.org/00cbbq754,https://ror.org/00pfv5508,https://ror.org/00cbbq754,BO,BO,La Paz,La Paz,Escuela Militar de Ingeniería,Universidad San Francisco de Asís,education,education
-1,https://ror.org/00pfv5508 -> https://ror.org/00pfv5508,https://ror.org/00pfv5508,https://ror.org/00pfv5508,BO,BO,La Paz,La Paz,Escuela Militar de Ingeniería,Escuela Militar de Ingeniería,education,education
-1,https://ror.org/03758j340 -> https://ror.org/03758j340,https://ror.org/03758j340,https://ror.org/03758j340,BO,BO,Cochabamba,Cochabamba,Universidad Privada Boliviana,Universidad Privada Boliviana,education,education
-3,https://ror.org/039fm7e11 -> https://ror.org/039fm7e11,https://ror.org/039fm7e11,https://ror.org/039fm7e11,BO,BO,Sucre,Sucre,University of Saint Francis Xavier,University of Saint Francis Xavier,education,education
-30,https://ror.org/04pqpvr75 -> https://ror.org/04pqpvr75,https://ror.org/04pqpvr75,https://ror.org/04pqpvr75,BO,BO,La Paz,La Paz,Universidad de Los Andes,Universidad de Los Andes,education,education
-1,https://ror.org/05khdc453 -> https://ror.org/00cbbq754,https://ror.org/05khdc453,https://ror.org/00cbbq754,BO,BO,La Paz,La Paz,Universidad Pública de El Alto,Universidad San Francisco de Asís,education,education

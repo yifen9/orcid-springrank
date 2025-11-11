@@ -1,8 +1,0 @@
-﻿Count,OrgFlow,OriDisOrgID,DesDisOrgID,OriOrgLocationCountry,DesOrgLocationCountry,OriOrgLocationDetails,DesOrgLocationDetails,OriOrgName,DesOrgName,OriOrgType,DesOrgType
-1,https://ror.org/02wdyv422 -> https://ror.org/03a62bv60,https://ror.org/02wdyv422,https://ror.org/03a62bv60,MT,MT,Floriana,Imsida,"Ministry for Transport, Infrastructure and Capital Projects",University of Malta,government,education
-2,https://ror.org/03a62bv60 -> https://ror.org/02z1kxt68,https://ror.org/03a62bv60,https://ror.org/02z1kxt68,MT,MT,Imsida,Paola,University of Malta,"Malta College of Arts, Science and Technology",education,education
-207,https://ror.org/03a62bv60 -> https://ror.org/03a62bv60,https://ror.org/03a62bv60,https://ror.org/03a62bv60,MT,MT,Imsida,Imsida,University of Malta,University of Malta,education,education
-1,https://ror.org/03a62bv60 -> https://ror.org/03jswvp59,https://ror.org/03a62bv60,https://ror.org/03jswvp59,MT,MT,Imsida,Valletta,University of Malta,Ministry for Health,education,government
-6,https://ror.org/03a62bv60 -> https://ror.org/05a01hn31,https://ror.org/03a62bv60,https://ror.org/05a01hn31,MT,MT,Imsida,Imsida,University of Malta,Mater Dei Hospital,education,healthcare
-3,https://ror.org/05a01hn31 -> https://ror.org/03a62bv60,https://ror.org/05a01hn31,https://ror.org/03a62bv60,MT,MT,Imsida,Imsida,Mater Dei Hospital,University of Malta,healthcare,education
-2,https://ror.org/05a01hn31 -> https://ror.org/05a01hn31,https://ror.org/05a01hn31,https://ror.org/05a01hn31,MT,MT,Imsida,Imsida,Mater Dei Hospital,Mater Dei Hospital,healthcare,healthcare
