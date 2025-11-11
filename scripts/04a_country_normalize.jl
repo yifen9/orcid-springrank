@@ -98,7 +98,7 @@ function main()
     iso2_path = joinpath(cfg_base, "iso2.tsv")
     terr_path = joinpath(cfg_base, "territorial_map.tsv")
 
-    out_map_dir = joinpath(out_root, "country_map")
+    out_map_dir = joinpath(out_root, "country")
     out_audit_dir = joinpath(out_root, "audit")
     mkpath(out_map_dir);
     mkpath(out_audit_dir)
@@ -110,7 +110,8 @@ function main()
     threads = try
         parse(Int, get(ENV, "DUCKDB_THREADS", string(Sys.CPU_THREADS)))
     catch
-        ; Sys.CPU_THREADS
+        ;
+        Sys.CPU_THREADS
     end
     memlim = get(ENV, "DUCKDB_MEM", "16GiB")
     tmpdir = abspath(get(ENV, "DUCKDB_TMP", joinpath("data", "_duckdb_tmp")));
