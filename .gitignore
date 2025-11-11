@@ -1,2 +1,4 @@
 data/_duckdb_tmp
-data/orcid
+data/orcid/source
+data/orcid/extracted
+data/orcid/structured

@@ -94,7 +94,7 @@ function main()
     in_root = abspath(joinpath("data", "orcid", "curated", date))
     out_root = abspath(joinpath("data", "orcid", "standardized", date))
 
-    cfg_base = get(ENV, "CONFIG_DIR", abspath(joinpath("config", "orcid", "country")))
+    cfg_base = abspath(joinpath("data", "external", "iso"))
     iso2_path = joinpath(cfg_base, "iso2.tsv")
     terr_path = joinpath(cfg_base, "territorial_map.tsv")
 
