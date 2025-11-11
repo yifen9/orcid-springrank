@@ -17,8 +17,6 @@ RUN git config --system --add safe.directory /workspace
 
 COPY Project.toml Manifest.toml* ./
 
-COPY src/ ./src
-
 RUN --mount=type=cache,target=/opt/julia-depot julia -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
 
 CMD ["bash","-lc","sleep infinity"]

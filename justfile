@@ -17,7 +17,7 @@ test:
 	julia -e 'using Pkg; Pkg.test()'
 
 fmt:
-	julia -e 'using JuliaFormatter; format("./src"); format("./scripts")'
+	julia -e 'using JuliaFormatter; format("./scripts")'
 
 ci:
 	julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate(); Pkg.test()'
@@ -25,14 +25,10 @@ ci:
 dev:
 	just init && just fmt && just test
 
-IN := "./data/orcid/raw/ORCID_2025_10_summaries"
-NDJSON := "./data/orcid/bronze/affiliations_2025_10.ndjson"
-PARQUET := "./data/orcid/silver/affiliations_2025_10.parquet"
+DATE := "2025_10"
 
 extract:
-	julia --project=. scripts/01_extract_orcid_xml_to_ndjson.jl {{IN}} {{NDJSON}}
+	julia --project=. scripts/01_extract_source_to_ndjson.jl {{DATE}}
 
 parquet:
-	julia --project=. scripts/02_ndjson_to_parquet.jl {{NDJSON}} {{PARQUET}}
-
-etl: extract parquet
+	julia --project=. scripts/02_structure_ndjson_to_parquet.jl {{DATE}}

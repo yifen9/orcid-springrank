@@ -1,10 +1,10 @@
-module OrcidXML
 using EzXML
 using JSON3
 using Printf
 using Dates
 using Base.Threads
 using Logging
+using FilePathsBase
 
 const NS = [
     "record" => "http://www.orcid.org/ns/record",
@@ -24,7 +24,7 @@ findall_ns(xp, node) =
     EzXML.findall(xp, node, NS)
 txt(n) = n === nothing ? nothing : EzXML.nodecontent(n)
 
-function date(y, m, d)
+function date3(y, m, d)
     if y === nothing && m === nothing && d === nothing
         return nothing
     end
@@ -62,8 +62,8 @@ function one_summary(el::EzXML.Node, type::String, base::NamedTuple)
         affiliation_type = type,
         role_title = txt(rt),
         department_name = txt(dn),
-        start_date = date(sy, sm, sd2),
-        end_date = date(ey, em, ed2),
+        start_date = date3(sy, sm, sd2),
+        end_date = date3(ey, em, ed2),
         organization_name = txt(on),
         organization_city = txt(oci),
         organization_country = txt(oc),
@@ -214,14 +214,12 @@ function extract_dir(
     part_bytes::Int = 16*1024*1024,
     part_rows::Int = 0,
 )
-    @info "run" in_dir=in_dir out_prefix=out_prefix nthreads=nthreads
     total = scan_count(in_dir)
     files = discover_files(in_dir, total)
     t0 = time()
     parsed = Threads.Atomic{Int64}(0)
-    written_rows = 0
     part = 0
-    io = open(@sprintf("%s.part-%08d.ndjson", out_prefix, part), "w")
+    io = open(joinpath(out_prefix, @sprintf("%04d.ndjson", part)), "w")
     bytes = 0
     rows = 0
     ch = Channel{Vector{NamedTuple}}(chan_size)
@@ -235,13 +233,12 @@ function extract_dir(
                 put!(ch, copy(buf))
             end
             if (parsed[] % 32) == 0
-                print("\r", render_bar("parse", parsed[], total, t0))
+                print("\r", render_bar("parse", parsed[], total, t0));
                 flush(stdout)
             end
         end
     end
     function writer()
-        wb = time()
         k = 0
         for batch in ch
             for obj in batch
@@ -254,12 +251,12 @@ function extract_dir(
             if (part_rows>0 && rows>=part_rows) || (part_bytes>0 && bytes>=part_bytes)
                 close(io)
                 part += 1
-                io = open(@sprintf("%s.part-%08d.ndjson", out_prefix, part), "w")
+                io = open(joinpath(out_prefix, @sprintf("%04d.ndjson", part)), "w")
                 bytes = 0
                 rows = 0
             end
             if (k % 1024) == 0
-                print("\r", render_bar("write", parsed[], total, t0))
+                print("\r", render_bar("write", parsed[], total, t0));
                 flush(stdout)
                 k = 0
             end
@@ -291,8 +288,20 @@ function extract_dir(
     wait(t_writer)
     close(io)
     print("\r", render_bar("parse", parsed[], total, t0), "\n")
-    @info "done" files=length(files)
-    nothing
 end
 
-end
+date = ARGS[1]
+in_dir = abspath(joinpath("data", "orcid", "source", date))
+out_dir = abspath(joinpath("data", "orcid", "extracted", date))
+mkpath(out_dir)
+out_prefix = out_dir
+nthreads = min(Sys.CPU_THREADS, 64)
+@info "start" in_dir=in_dir out_prefix=out_prefix nthreads=nthreads
+extract_dir(
+    in_dir,
+    out_prefix;
+    nthreads = nthreads,
+    part_bytes = 16*1024*1024,
+    batch_size = 4096,
+    chan_size = 16384,
+)
