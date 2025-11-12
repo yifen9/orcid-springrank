@@ -31,11 +31,10 @@ end
 function main()
     orcid_date = ARGS[1]
     geo_date = ARGS[2]
-
     res_root = abspath(joinpath("data", "orcid", "resolved", orcid_date, "city"))
+    std_root = abspath(joinpath("data", "orcid", "standardized", orcid_date))
     geo_path =
         abspath(joinpath("data", "external", "geonames", geo_date, "cities1000.parquet"))
-
     in_unmatched = string(joinpath(res_root, "unmatched_alias"), "/*.parquet")
     out_match_root = joinpath(res_root, "match_fuzzy")
     out_unmatch_root = joinpath(res_root, "unmatched_fuzzy")
@@ -43,26 +42,22 @@ function main()
     mkpath(out_match_root);
     mkpath(out_unmatch_root);
     mkpath(audit_dir)
-
     chunk_rows = 16384
     threads = try
         parse(Int, get(ENV, "DUCKDB_THREADS", string(Sys.CPU_THREADS)))
     catch
-        ;
-        Sys.CPU_THREADS
+        ; Sys.CPU_THREADS
     end
     memlim = get(ENV, "DUCKDB_MEM", "16GiB")
     tmpdir = abspath(get(ENV, "DUCKDB_TMP", joinpath("data", "_duckdb_tmp")));
     mkpath(tmpdir)
     decided_at = Dates.format(now(), dateformat"yyyy-mm-ddTHH:MM:SS")
     t0 = time()
-
     db = DuckDB.DB()
     DuckDB.execute(db, "SET threads=$threads")
     DuckDB.execute(db, "SET memory_limit='$memlim'")
     DuckDB.execute(db, "SET temp_directory='$tmpdir'")
     DuckDB.execute(db, "SET preserve_insertion_order=false")
-
     DuckDB.execute(
         db,
         """
@@ -71,7 +66,6 @@ SELECT city_row_id, organization_city_raw, organization_city_norm, organization_
 FROM read_parquet('$in_unmatched')
 """,
     )
-
     DuckDB.execute(
         db,
         """
@@ -87,7 +81,6 @@ SELECT
 FROM pending
 """,
     )
-
     DuckDB.execute(
         db,
         """
@@ -101,7 +94,6 @@ FROM read_parquet('$geo_path') g
 WHERE g.country_code IS NOT NULL AND g.ascii_name IS NOT NULL
 """,
     )
-
     DuckDB.execute(
         db,
         """
@@ -115,7 +107,6 @@ FROM read_parquet('$geo_path') g,
 WHERE g.country_code IS NOT NULL AND x.alt IS NOT NULL AND length(trim(x.alt))>0
 """,
     )
-
     DuckDB.execute(
         db,
         """
@@ -125,11 +116,9 @@ UNION ALL
 SELECT geoname_id, country_code, first_tok FROM geo_alias_first
 """,
     )
-
     DuckDB.execute(db, "CREATE INDEX idx_p ON p_tok(organization_country_iso2, first_tok)")
     DuckDB.execute(db, "CREATE INDEX idx_gf ON geo_first(country_code, first_tok)")
     DuckDB.execute(db, "CREATE INDEX idx_gt ON geo_tok(geoname_id)")
-
     DuckDB.execute(
         db,
         """
@@ -152,7 +141,6 @@ JOIN geo_tok
 WHERE length(p.first_tok)>0
 """,
     )
-
     DuckDB.execute(
         db,
         """
@@ -169,7 +157,6 @@ SELECT
 FROM cand
 """,
     )
-
     DuckDB.execute(
         db,
         """
@@ -184,7 +171,6 @@ FROM scored
 WHERE inter_sz > 0
 """,
     )
-
     DuckDB.execute(
         db,
         """
@@ -209,7 +195,6 @@ JOIN read_parquet('$geo_path') f USING(geoname_id)
 WHERE b.rk = 1
 """,
     )
-
     DuckDB.execute(
         db,
         """
@@ -220,7 +205,6 @@ LEFT JOIN m_full m USING(city_row_id)
 WHERE m.city_row_id IS NULL
 """,
     )
-
     q1 = DuckDB.execute(db, "SELECT COUNT(*)::BIGINT AS n FROM m_full")
     q2 = DuckDB.execute(db, "SELECT COUNT(*)::BIGINT AS n FROM still_unmatched")
     n_match = 0;
@@ -236,7 +220,6 @@ WHERE m.city_row_id IS NULL
     print("\r", bar("scan", 1, 1, t0));
     println();
     flush(stdout)
-
     DuckDB.execute(
         db,
         "CREATE TEMP TABLE m_rn AS SELECT *, row_number() over (order by city_row_id) - 1 AS rn FROM m_full",
@@ -245,7 +228,6 @@ WHERE m.city_row_id IS NULL
         db,
         "CREATE TEMP TABLE u_rn AS SELECT *, row_number() over (order by city_row_id) - 1 AS rn FROM still_unmatched",
     )
-
     qgm = DuckDB.execute(
         db,
         "SELECT cast(floor(rn / $chunk_rows) as bigint) AS gid, count(*) AS cnt FROM m_rn GROUP BY 1 ORDER BY 1",
@@ -254,7 +236,6 @@ WHERE m.city_row_id IS NULL
         db,
         "SELECT cast(floor(rn / $chunk_rows) as bigint) AS gid, count(*) AS cnt FROM u_rn GROUP BY 1 ORDER BY 1",
     )
-
     groups_m = Tuple{Int,Int}[];
     groups_u = Tuple{Int,Int}[]
     for r in qgm
@@ -265,7 +246,6 @@ WHERE m.city_row_id IS NULL
         ;
         push!(groups_u, (Int(r[:gid]), Int(r[:cnt])));
     end
-
     written = 0
     for (gid, cnt) in groups_m
         out_file = joinpath(out_match_root, @sprintf("%04d.parquet", gid))
@@ -287,7 +267,6 @@ COPY (
     end
     println();
     flush(stdout)
-
     uwritten = 0
     for (gid, cnt) in groups_u
         out_file = joinpath(out_unmatch_root, @sprintf("%04d.parquet", gid))
@@ -308,14 +287,28 @@ COPY (
     end
     println();
     flush(stdout)
-
     DuckDB.execute(
         db,
-        "CREATE TEMP TABLE cnt_pending AS SELECT COUNT(*) AS n, coalesce(SUM(pair_cnt),0) AS w FROM p_tok",
+        "CREATE TEMP TABLE total_w AS SELECT COALESCE(SUM(pair_cnt),0) AS total_pairs_weighted FROM read_parquet('$(joinpath(std_root, "city_text", "*.parquet"))')",
     )
     DuckDB.execute(
         db,
-        "CREATE TEMP TABLE cnt_match AS SELECT COUNT(*) AS n, coalesce(SUM(pair_cnt),0) AS w FROM m_full",
+        """
+CREATE TEMP TABLE cumul_ids AS
+SELECT DISTINCT city_row_id, pair_cnt FROM read_parquet('$(joinpath(res_root, "match_exact", "*.parquet"))')
+UNION ALL
+SELECT DISTINCT city_row_id, pair_cnt FROM read_parquet('$(joinpath(res_root, "match_alias", "*.parquet"))')
+UNION ALL
+SELECT DISTINCT city_row_id, pair_cnt FROM m_full
+""",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE cumul_ids_dist AS SELECT DISTINCT city_row_id, pair_cnt FROM cumul_ids",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE matched_w AS SELECT COUNT(*) AS matched_distinct, COALESCE(SUM(pair_cnt),0) AS matched_weighted FROM cumul_ids_dist",
     )
     DuckDB.execute(
         db,
@@ -324,18 +317,17 @@ CREATE TEMP TABLE audit AS
 SELECT
   '$decided_at' AS decided_at,
   3 AS stage,
-  (SELECT n FROM cnt_pending) AS total_pairs_distinct,
-  (SELECT w FROM cnt_pending) AS total_pairs_weighted,
-  (SELECT n FROM cnt_match) AS matched_distinct,
-  (SELECT w FROM cnt_match) AS matched_weighted,
-  ROUND(100.0 * (SELECT w FROM cnt_match) / NULLIF((SELECT w FROM cnt_pending),0), 2) AS matched_pct_weighted
+  (SELECT COUNT(*) FROM read_parquet('$(joinpath(std_root, "city_text", "*.parquet"))')) AS total_pairs_distinct,
+  (SELECT total_pairs_weighted FROM total_w) AS total_pairs_weighted,
+  (SELECT matched_distinct FROM matched_w) AS matched_distinct,
+  (SELECT matched_weighted FROM matched_w) AS matched_weighted,
+  ROUND(100.0 * (SELECT matched_weighted FROM matched_w) / NULLIF((SELECT total_pairs_weighted FROM total_w),0), 2) AS matched_pct_weighted
 """,
     )
     DuckDB.execute(
         db,
         "COPY audit TO '$(joinpath(audit_dir, "city_match_fuzzy.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)",
     )
-
     DuckDB.close(db)
     println("done")
 end

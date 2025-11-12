@@ -46,14 +46,13 @@ function main()
     threads = try
         parse(Int, get(ENV, "DUCKDB_THREADS", string(Sys.CPU_THREADS)))
     catch
-        ;
-        Sys.CPU_THREADS
+        ; Sys.CPU_THREADS
     end
     memlim = get(ENV, "DUCKDB_MEM", "16GiB")
     tmpdir = abspath(get(ENV, "DUCKDB_TMP", joinpath("data", "_duckdb_tmp")));
     mkpath(tmpdir)
     decided_at = Dates.format(now(), dateformat"yyyy-mm-ddTHH:MM:SS")
-    t0=time()
+    t0 = time()
     db = DuckDB.DB()
     DuckDB.execute(db, "SET threads=$threads")
     DuckDB.execute(db, "SET memory_limit='$memlim'")
@@ -227,16 +226,28 @@ COPY (
     flush(stdout)
     DuckDB.execute(
         db,
+        "CREATE TEMP TABLE total_w AS SELECT COALESCE(SUM(pair_cnt),0) AS total_pairs_weighted FROM read_parquet('$in_city_glob')",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE matched_cum_ids AS SELECT DISTINCT city_row_id, pair_cnt FROM t_match",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE matched_w AS SELECT COUNT(*) AS matched_distinct, COALESCE(SUM(pair_cnt),0) AS matched_weighted FROM matched_cum_ids",
+    )
+    DuckDB.execute(
+        db,
         """
 CREATE TEMP TABLE audit AS
 SELECT
   '$decided_at' AS decided_at,
   1 AS stage,
-  (SELECT COUNT(*) FROM t_city) AS pending_distinct,
-  (SELECT SUM(pair_cnt) FROM t_city) AS pending_weighted,
-  (SELECT COUNT(*) FROM t_match) AS matched_distinct,
-  (SELECT SUM(pair_cnt) FROM t_match) AS matched_weighted,
-  ROUND(100.0 * (SELECT SUM(pair_cnt) FROM t_match) / NULLIF((SELECT SUM(pair_cnt) FROM t_city),0), 2) AS matched_pct_weighted
+  (SELECT COUNT(*) FROM t_city) AS total_pairs_distinct,
+  (SELECT total_pairs_weighted FROM total_w) AS total_pairs_weighted,
+  (SELECT matched_distinct FROM matched_w) AS matched_distinct,
+  (SELECT matched_weighted FROM matched_w) AS matched_weighted,
+  ROUND(100.0 * (SELECT matched_weighted FROM matched_w) / NULLIF((SELECT total_pairs_weighted FROM total_w),0), 2) AS matched_pct_weighted
 """,
     )
     DuckDB.execute(

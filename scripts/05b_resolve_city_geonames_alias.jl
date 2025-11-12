@@ -31,6 +31,7 @@ end
 function main()
     orcid_date = ARGS[1]
     geo_date = ARGS[2]
+    std_root = abspath(joinpath("data", "orcid", "standardized", orcid_date))
     res_root = abspath(joinpath("data", "orcid", "resolved", orcid_date, "city"))
     geo_path =
         abspath(joinpath("data", "external", "geonames", geo_date, "cities1000.parquet"))
@@ -45,14 +46,13 @@ function main()
     threads = try
         parse(Int, get(ENV, "DUCKDB_THREADS", string(Sys.CPU_THREADS)))
     catch
-        ;
-        Sys.CPU_THREADS
+        ; Sys.CPU_THREADS
     end
     memlim = get(ENV, "DUCKDB_MEM", "16GiB")
     tmpdir = abspath(get(ENV, "DUCKDB_TMP", joinpath("data", "_duckdb_tmp")));
     mkpath(tmpdir)
     decided_at = Dates.format(now(), dateformat"yyyy-mm-ddTHH:MM:SS")
-    t0=time()
+    t0 = time()
     db = DuckDB.DB()
     DuckDB.execute(db, "SET threads=$threads")
     DuckDB.execute(db, "SET memory_limit='$memlim'")
@@ -177,7 +177,7 @@ COPY (
         ;
         push!(ugroups, (Int(r[:gid]), Int(r[:cnt])));
     end
-    utotal = sum(last, ugroups; init = 0)
+    utotal = sum(last, ugroups; init = 0);
     uwritten = 0
     for (gid, cnt) in ugroups
         out_file = joinpath(out_unmatched, @sprintf("%04d.parquet", gid))
@@ -199,16 +199,37 @@ COPY (
     flush(stdout)
     DuckDB.execute(
         db,
+        "CREATE TEMP TABLE total_w AS SELECT COALESCE(SUM(pair_cnt),0) AS total_pairs_weighted FROM read_parquet('$(joinpath(std_root, "city_text", "*.parquet"))')",
+    )
+    DuckDB.execute(
+        db,
+        """
+CREATE TEMP TABLE cumul_ids AS
+SELECT DISTINCT city_row_id, pair_cnt FROM read_parquet('$(joinpath(res_root, "match_exact", "*.parquet"))')
+UNION ALL
+SELECT DISTINCT city_row_id, pair_cnt FROM m1_full
+""",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE cumul_ids_dist AS SELECT DISTINCT city_row_id, pair_cnt FROM cumul_ids",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE matched_w AS SELECT COUNT(*) AS matched_distinct, COALESCE(SUM(pair_cnt),0) AS matched_weighted FROM cumul_ids_dist",
+    )
+    DuckDB.execute(
+        db,
         """
 CREATE TEMP TABLE audit AS
 SELECT
   '$decided_at' AS decided_at,
   2 AS stage,
-  coalesce((SELECT COUNT(*) FROM pending),0) AS pending_distinct,
-  coalesce((SELECT SUM(pair_cnt) FROM pending),0) AS pending_weighted,
-  coalesce((SELECT COUNT(*) FROM m1_full),0) AS matched_distinct,
-  coalesce((SELECT SUM(pair_cnt) FROM m1_full),0) AS matched_weighted,
-  round(100.0 * coalesce((SELECT SUM(pair_cnt) FROM m1_full),0) / nullif(coalesce((SELECT SUM(pair_cnt) FROM pending),0),0), 2) AS matched_pct_weighted
+  (SELECT COUNT(*) FROM read_parquet('$(joinpath(std_root, "city_text", "*.parquet"))')) AS total_pairs_distinct,
+  (SELECT total_pairs_weighted FROM total_w) AS total_pairs_weighted,
+  (SELECT matched_distinct FROM matched_w) AS matched_distinct,
+  (SELECT matched_weighted FROM matched_w) AS matched_weighted,
+  ROUND(100.0 * (SELECT matched_weighted FROM matched_w) / NULLIF((SELECT total_pairs_weighted FROM total_w),0), 2) AS matched_pct_weighted
 """,
     )
     DuckDB.execute(
