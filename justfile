@@ -47,4 +47,7 @@ do-04b:
 	julia --project=. scripts/04b_city_text_normalize.jl {{ORCID_DATE}}
 
 do-05a:
-	julia --project=. scripts/05a_resolve_city_geonames.jl {{ORCID_DATE}} {{GEONAMES_DATE}}
+	julia --project=. scripts/05a_resolve_city_geonames_exact.jl {{ORCID_DATE}} {{GEONAMES_DATE}}
+
+do-05b:
+	julia --project=. scripts/05b_resolve_city_geonames_alias.jl {{ORCID_DATE}} {{GEONAMES_DATE}}

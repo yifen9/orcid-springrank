@@ -32,11 +32,12 @@ function main()
     orcid_date = ARGS[1]
     geo_date = ARGS[2]
     std_root = abspath(joinpath("data", "orcid", "standardized", orcid_date))
-    geo_path = abspath(joinpath("data", "external", "geonames", geo_date, "cities1000.parquet"))
+    geo_path =
+        abspath(joinpath("data", "external", "geonames", geo_date, "cities1000.parquet"))
     in_city_glob = string(joinpath(std_root, "city_text"), "/*.parquet")
     out_root = abspath(joinpath("data", "orcid", "resolved", orcid_date, "city"))
-    out_match_dir = joinpath(out_root, "match")
-    out_unmatch_dir = joinpath(out_root, "unmatched")
+    out_match_dir = joinpath(out_root, "match_exact")
+    out_unmatch_dir = joinpath(out_root, "unmatched_exact")
     audit_dir = joinpath(out_root, "audit")
     mkpath(out_match_dir);
     mkpath(out_unmatch_dir);
@@ -45,7 +46,8 @@ function main()
     threads = try
         parse(Int, get(ENV, "DUCKDB_THREADS", string(Sys.CPU_THREADS)))
     catch
-        ; Sys.CPU_THREADS
+        ;
+        Sys.CPU_THREADS
     end
     memlim = get(ENV, "DUCKDB_MEM", "16GiB")
     tmpdir = abspath(get(ENV, "DUCKDB_TMP", joinpath("data", "_duckdb_tmp")));
@@ -149,11 +151,9 @@ WHERE m.city_row_id IS NULL
     n_match = 0;
     n_unmatch = 0
     for r in q1
-        ;
         n_match = Int(r[:n]);
     end
     for r in q2
-        ;
         n_unmatch = Int(r[:n]);
     end
     print("\r", bar("scan", 1, 1, t0));
@@ -178,11 +178,9 @@ WHERE m.city_row_id IS NULL
     groups_m = Tuple{Int,Int}[];
     groups_u = Tuple{Int,Int}[]
     for r in qgm
-        ;
         push!(groups_m, (Int(r[:chunk_id]), Int(r[:cnt])));
     end
     for r in qgu
-        ;
         push!(groups_u, (Int(r[:chunk_id]), Int(r[:cnt])));
     end
     written = 0
@@ -211,7 +209,7 @@ COPY (
 """,
         )
         written += cnt
-        print("\r", bar("write_match", written, n_match, t0));
+        print("\r", bar("write_exact", written, n_match, t0));
         flush(stdout)
     end
     println();
@@ -235,7 +233,7 @@ COPY (
 """,
         )
         written += cnt
-        print("\r", bar("write_unmatch", written, n_unmatch, t0));
+        print("\r", bar("write_unmatched", written, n_unmatch, t0));
         flush(stdout)
     end
     println();
@@ -255,7 +253,7 @@ SELECT
     )
     DuckDB.execute(
         db,
-        "COPY city_resolve_audit TO '$(joinpath(audit_dir, "city_geonames_report.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)",
+        "COPY city_resolve_audit TO '$(joinpath(audit_dir, "city_match_exact.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)",
     )
     DuckDB.close(db)
     println("done")
