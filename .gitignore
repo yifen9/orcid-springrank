@@ -1,2 +1,3 @@
 data/_duckdb_tmp
+data/external/ror/*/raw/ror.json
 data/orcid
