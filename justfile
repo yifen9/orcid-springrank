@@ -51,3 +51,9 @@ do-05a:
 
 do-05b:
 	julia --project=. scripts/05b_resolve_city_geonames_alias.jl {{ORCID_DATE}} {{GEONAMES_DATE}}
+
+do-05c:
+	julia --project=. scripts/05c_resolve_city_geonames_fuzzy.jl {{ORCID_DATE}} {{GEONAMES_DATE}}
+
+do-05d:
+	julia --project=. scripts/05d_merge_city_matches.jl {{ORCID_DATE}} {{GEONAMES_DATE}}

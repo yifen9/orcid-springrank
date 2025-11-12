@@ -32,7 +32,8 @@ function main()
     orcid_date = ARGS[1]
     geo_date = ARGS[2]
     res_root = abspath(joinpath("data", "orcid", "resolved", orcid_date, "city"))
-    geo_path = abspath(joinpath("data", "external", "geonames", geo_date, "cities1000.parquet"))
+    geo_path =
+        abspath(joinpath("data", "external", "geonames", geo_date, "cities1000.parquet"))
     unmatched_glob = string(joinpath(res_root, "unmatched_exact"), "/*.parquet")
     out_match = joinpath(res_root, "match_alias")
     out_unmatched = joinpath(res_root, "unmatched_alias")
@@ -44,7 +45,8 @@ function main()
     threads = try
         parse(Int, get(ENV, "DUCKDB_THREADS", string(Sys.CPU_THREADS)))
     catch
-        ; Sys.CPU_THREADS
+        ;
+        Sys.CPU_THREADS
     end
     memlim = get(ENV, "DUCKDB_MEM", "16GiB")
     tmpdir = abspath(get(ENV, "DUCKDB_TMP", joinpath("data", "_duckdb_tmp")));
@@ -56,98 +58,55 @@ function main()
     DuckDB.execute(db, "SET memory_limit='$memlim'")
     DuckDB.execute(db, "SET temp_directory='$tmpdir'")
     DuckDB.execute(db, "SET preserve_insertion_order=false")
-
     DuckDB.execute(
         db,
         """
 CREATE TEMP TABLE geo_names_ext AS
-SELECT
-  lower(regexp_replace(coalesce(ascii_name,''),'\\s+',' ')) AS name_norm,
-  country_code,
-  geoname_id
+SELECT lower(regexp_replace(coalesce(ascii_name,''),'\\s+',' ')) AS name_norm, country_code, geoname_id
 FROM read_parquet('$geo_path')
 WHERE ascii_name IS NOT NULL AND country_code IS NOT NULL
 UNION
-SELECT
-  lower(regexp_replace(trim(x.alt),'\\s+',' ')) AS name_norm,
-  g.country_code,
-  g.geoname_id
-FROM read_parquet('$geo_path') g,
-     unnest(string_split(coalesce(g.alternate_names,''), ',')) AS x(alt)
+SELECT lower(regexp_replace(trim(x.alt),'\\s+',' ')) AS name_norm, g.country_code, g.geoname_id
+FROM read_parquet('$geo_path') g, unnest(string_split(coalesce(g.alternate_names,''), ',')) AS x(alt)
 WHERE x.alt IS NOT NULL AND length(trim(x.alt))>0 AND g.country_code IS NOT NULL
 """,
     )
-
     DuckDB.execute(
         db,
         """
 CREATE TEMP TABLE geo_full AS
-SELECT
-  geoname_id::VARCHAR AS geoname_id,
-  ascii_name::VARCHAR AS city_official_name,
-  country_code::VARCHAR AS country_code,
-  admin1_code::VARCHAR AS admin1_code,
-  admin2_code::VARCHAR AS admin2_code,
-  timezone::VARCHAR AS timezone
+SELECT geoname_id::VARCHAR AS geoname_id, ascii_name::VARCHAR AS city_official_name, country_code::VARCHAR AS country_code, admin1_code::VARCHAR AS admin1_code, admin2_code::VARCHAR AS admin2_code, timezone::VARCHAR AS timezone
 FROM read_parquet('$geo_path')
 """,
     )
-
     DuckDB.execute(
         db,
         """
 CREATE TEMP TABLE pending AS
-SELECT
-  city_row_id,
-  organization_city_raw,
-  organization_city_norm,
-  organization_country_iso2,
-  pair_cnt
+SELECT city_row_id, organization_city_raw, organization_city_norm, organization_country_iso2, pair_cnt
 FROM read_parquet('$unmatched_glob')
 """,
     )
-
     DuckDB.execute(
         db,
         """
 CREATE TEMP TABLE m1 AS
-SELECT
-  p.city_row_id,
-  p.organization_city_raw,
-  p.organization_city_norm,
-  p.organization_country_iso2,
-  p.pair_cnt,
-  g.geoname_id
+SELECT p.city_row_id, p.organization_city_raw, p.organization_city_norm, p.organization_country_iso2, p.pair_cnt, g.geoname_id
 FROM pending p
 JOIN geo_names_ext g
   ON g.country_code = p.organization_country_iso2
  AND g.name_norm   = p.organization_city_norm
 """,
     )
-
     DuckDB.execute(
         db,
         """
 CREATE TEMP TABLE m1_full AS
-SELECT
-  m.city_row_id,
-  m.organization_city_raw,
-  m.organization_city_norm,
-  m.organization_country_iso2,
-  m.pair_cnt,
-  f.geoname_id,
-  f.city_official_name,
-  f.admin1_code,
-  f.admin2_code,
-  f.timezone,
-  2 AS match_rule,
-  1.0 AS confidence,
-  '$decided_at' AS decided_at
+SELECT m.city_row_id, m.organization_city_raw, m.organization_city_norm, m.organization_country_iso2, m.pair_cnt, f.geoname_id, f.city_official_name, f.admin1_code, f.admin2_code, f.timezone, 2 AS match_rule, 1.0 AS confidence, '$decided_at' AS decided_at
 FROM m1 m
 JOIN geo_full f USING(geoname_id)
 """,
     )
-
     DuckDB.execute(
         db,
         """
@@ -158,21 +117,21 @@ LEFT JOIN m1 USING(city_row_id)
 WHERE m1.geoname_id IS NULL
 """,
     )
-
     q1 = DuckDB.execute(db, "SELECT COUNT(*)::BIGINT AS n FROM m1_full")
     q2 = DuckDB.execute(db, "SELECT COUNT(*)::BIGINT AS n FROM still_unmatched")
     n_match = 0;
     n_unmatch = 0
     for r in q1
+        ;
         n_match = Int(r[:n]);
     end
     for r in q2
+        ;
         n_unmatch = Int(r[:n]);
     end
     print("\r", bar("scan", 1, 1, t0));
     println();
     flush(stdout)
-
     DuckDB.execute(
         db,
         "CREATE TEMP TABLE mcat_rn AS SELECT *, row_number() over (order by organization_country_iso2, organization_city_norm, city_row_id) - 1 AS rn FROM m1_full",
@@ -183,6 +142,7 @@ WHERE m1.geoname_id IS NULL
     )
     groups = Tuple{Int,Int}[]
     for r in qg
+        ;
         push!(groups, (Int(r[:gid]), Int(r[:cnt])));
     end
     written = 0
@@ -192,20 +152,7 @@ WHERE m1.geoname_id IS NULL
             db,
             """
 COPY (
-  SELECT
-    city_row_id,
-    organization_city_raw,
-    organization_city_norm,
-    organization_country_iso2,
-    pair_cnt,
-    geoname_id,
-    city_official_name,
-    admin1_code,
-    admin2_code,
-    timezone,
-    confidence,
-    match_rule,
-    '$decided_at' AS decided_at
+  SELECT city_row_id, organization_city_raw, organization_city_norm, organization_country_iso2, pair_cnt, geoname_id, city_official_name, admin1_code, admin2_code, timezone, confidence, match_rule, '$decided_at' AS decided_at
   FROM mcat_rn
   WHERE cast(floor(rn / $chunk_rows) as bigint) = $gid
 ) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
@@ -217,7 +164,6 @@ COPY (
     end
     println();
     flush(stdout)
-
     DuckDB.execute(
         db,
         "CREATE TEMP TABLE um_rn AS SELECT *, row_number() over (order by organization_country_iso2, organization_city_norm, city_row_id) - 1 AS rn FROM still_unmatched",
@@ -228,6 +174,7 @@ COPY (
     )
     ugroups = Tuple{Int,Int}[]
     for r in qu
+        ;
         push!(ugroups, (Int(r[:gid]), Int(r[:cnt])));
     end
     utotal = sum(last, ugroups; init = 0)
@@ -238,12 +185,7 @@ COPY (
             db,
             """
 COPY (
-  SELECT
-    city_row_id,
-    organization_city_raw,
-    organization_city_norm,
-    organization_country_iso2,
-    pair_cnt
+  SELECT city_row_id, organization_city_raw, organization_city_norm, organization_country_iso2, pair_cnt
   FROM um_rn
   WHERE cast(floor(rn / $chunk_rows) as bigint) = $gid
 ) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
@@ -255,7 +197,6 @@ COPY (
     end
     println();
     flush(stdout)
-
     DuckDB.execute(
         db,
         """

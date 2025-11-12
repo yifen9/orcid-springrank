@@ -151,9 +151,11 @@ WHERE m.city_row_id IS NULL
     n_match = 0;
     n_unmatch = 0
     for r in q1
+        ;
         n_match = Int(r[:n]);
     end
     for r in q2
+        ;
         n_unmatch = Int(r[:n]);
     end
     print("\r", bar("scan", 1, 1, t0));
@@ -178,9 +180,11 @@ WHERE m.city_row_id IS NULL
     groups_m = Tuple{Int,Int}[];
     groups_u = Tuple{Int,Int}[]
     for r in qgm
+        ;
         push!(groups_m, (Int(r[:chunk_id]), Int(r[:cnt])));
     end
     for r in qgu
+        ;
         push!(groups_u, (Int(r[:chunk_id]), Int(r[:cnt])));
     end
     written = 0
@@ -190,19 +194,7 @@ WHERE m.city_row_id IS NULL
             db,
             """
 COPY (
-  SELECT city_row_id,
-         organization_city_raw,
-         organization_city_norm,
-         organization_country_iso2,
-         pair_cnt,
-         geoname_id,
-         city_official_name,
-         admin1_code,
-         admin2_code,
-         timezone,
-         confidence,
-         match_rule,
-         '$decided_at' AS decided_at
+  SELECT city_row_id, organization_city_raw, organization_city_norm, organization_country_iso2, pair_cnt, geoname_id, city_official_name, admin1_code, admin2_code, timezone, confidence, match_rule, '$decided_at' AS decided_at
   FROM match2
   WHERE CAST(FLOOR(rn / $chunk_rows) AS BIGINT) = $chunk_id
 ) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
@@ -221,12 +213,7 @@ COPY (
             db,
             """
 COPY (
-  SELECT city_row_id,
-         organization_city_raw,
-         organization_city_norm,
-         organization_country_iso2,
-         pair_cnt,
-         '$decided_at' AS decided_at
+  SELECT city_row_id, organization_city_raw, organization_city_norm, organization_country_iso2, pair_cnt, '$decided_at' AS decided_at
   FROM unmatch2
   WHERE CAST(FLOOR(rn / $chunk_rows) AS BIGINT) = $chunk_id
 ) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
@@ -241,19 +228,20 @@ COPY (
     DuckDB.execute(
         db,
         """
-CREATE TEMP TABLE city_resolve_audit AS
+CREATE TEMP TABLE audit AS
 SELECT
-  (SELECT COUNT(*) FROM t_city) AS total_pairs_distinct,
-  (SELECT SUM(pair_cnt) FROM t_city) AS total_pairs_weighted,
+  '$decided_at' AS decided_at,
+  1 AS stage,
+  (SELECT COUNT(*) FROM t_city) AS pending_distinct,
+  (SELECT SUM(pair_cnt) FROM t_city) AS pending_weighted,
   (SELECT COUNT(*) FROM t_match) AS matched_distinct,
   (SELECT SUM(pair_cnt) FROM t_match) AS matched_weighted,
-  ROUND(100.0 * (SELECT SUM(pair_cnt) FROM t_match) / NULLIF((SELECT SUM(pair_cnt) FROM t_city),0), 2) AS matched_pct_weighted,
-  '$decided_at' AS decided_at
+  ROUND(100.0 * (SELECT SUM(pair_cnt) FROM t_match) / NULLIF((SELECT SUM(pair_cnt) FROM t_city),0), 2) AS matched_pct_weighted
 """,
     )
     DuckDB.execute(
         db,
-        "COPY city_resolve_audit TO '$(joinpath(audit_dir, "city_match_exact.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)",
+        "COPY audit TO '$(joinpath(audit_dir, "city_match_exact.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)",
     )
     DuckDB.close(db)
     println("done")
