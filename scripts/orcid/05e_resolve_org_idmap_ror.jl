@@ -39,23 +39,33 @@ function main()
     in_country_map_glob = string(joinpath(std_root, "country"), "/*.parquet")
     in_dim_org_raw_glob = string(joinpath(cur_root, "dim_org_raw"), "/*.parquet")
     in_ror_ext = abspath(joinpath(ror_root, "parquet", "external_id.parquet"))
+
     out_root = abspath(joinpath("data", "orcid", "resolved", orcid_date, "org"))
-    out_match_all_dir = joinpath(out_root, "match_idmap_all")
-    out_match_best_dir = joinpath(out_root, "match_idmap_best")
-    out_unmatch_dir = joinpath(out_root, "unmatched_idmap")
+    out_src = joinpath(out_root, "sources")
+    out_fundref_cand = joinpath(out_src, "fundref", "candidates")
+    out_fundref_best = joinpath(out_src, "fundref", "best")
+    out_grid_cand = joinpath(out_src, "grid", "candidates")
+    out_grid_best = joinpath(out_src, "grid", "best")
+    out_ror_cand = joinpath(out_src, "ror", "candidates")
+    out_ror_best = joinpath(out_src, "ror", "best")
     audit_dir = joinpath(out_root, "audit")
-    mkpath(out_match_all_dir);
-    mkpath(out_match_best_dir);
-    mkpath(out_unmatch_dir);
+    mkpath(out_fundref_cand);
+    mkpath(out_fundref_best)
+    mkpath(out_grid_cand);
+    mkpath(out_grid_best)
+    mkpath(out_ror_cand);
+    mkpath(out_ror_best)
     mkpath(audit_dir)
+
     chunk_rows = 16384
     threads = try
         parse(Int, get(ENV, "DUCKDB_THREADS", string(Sys.CPU_THREADS)))
     catch
-        ; Sys.CPU_THREADS
+        ;
+        Sys.CPU_THREADS
     end
     memlim = get(ENV, "DUCKDB_MEM", "16GiB")
-    tmpdir = abspath(get(ENV, "DUCKDB_TMP", joinpath("data", "_duckdb_tmp")));
+    tmpdir = abspath(joinpath("data", "_duckdb_tmp"));
     mkpath(tmpdir)
     decided_at = Dates.format(now(), dateformat"yyyy-mm-ddTHH:MM:SS")
     t0 = time()
@@ -195,11 +205,6 @@ WHERE lower(type) IN ('fundref','grid')
     print("\r", bar("materialize_xwalk", xw_n, xw_n, t0));
     println();
     flush(stdout)
-    if xw_n == 0
-        DuckDB.close(db);
-        println("no_ror_xwalk");
-        return
-    end
 
     DuckDB.execute(
         db,
@@ -248,27 +253,7 @@ FROM org_signals
     )
     DuckDB.execute(
         db,
-        "CREATE TEMP TABLE s_r AS SELECT org_row_id, organization_name_raw, organization_name_norm, organization_country_iso2, pair_cnt, ror_id_norm AS ror_id FROM signals_norm WHERE ror_id_norm IS NOT NULL",
-    )
-
-    DuckDB.execute(
-        db,
-        """
-CREATE TEMP TABLE m_r AS
-SELECT
-  s.org_row_id,
-  s.organization_name_raw,
-  s.organization_name_norm,
-  s.organization_country_iso2,
-  s.pair_cnt,
-  s.ror_id,
-  'ror'::VARCHAR AS match_source,
-  s.ror_id::VARCHAR AS source_value_norm,
-  0 AS match_priority,
-  1.0::DOUBLE AS confidence,
-  1 AS match_rule
-FROM s_r s
-""",
+        "CREATE TEMP TABLE s_r AS SELECT org_row_id, organization_name_raw, organization_name_norm, organization_country_iso2, pair_cnt, ror_id_norm  AS source_value_norm FROM signals_norm WHERE ror_id_norm  IS NOT NULL",
     )
 
     DuckDB.execute(
@@ -311,192 +296,269 @@ FROM s_g s
 JOIN x_g x ON x.value_norm = s.source_value_norm
 """,
     )
+    DuckDB.execute(
+        db,
+        """
+CREATE TEMP TABLE m_r AS
+SELECT
+  s.org_row_id,
+  s.organization_name_raw,
+  s.organization_name_norm,
+  s.organization_country_iso2,
+  s.pair_cnt,
+  s.source_value_norm::VARCHAR AS ror_id,
+  'ror'::VARCHAR AS match_source,
+  s.source_value_norm::VARCHAR AS source_value_norm,
+  0 AS match_priority,
+  1.0::DOUBLE AS confidence,
+  1 AS match_rule
+FROM s_r s
+""",
+    )
 
     DuckDB.execute(
         db,
-        "CREATE TEMP TABLE m_idmap_all AS SELECT * FROM m_r UNION ALL SELECT * FROM m_f UNION ALL SELECT * FROM m_g",
+        "CREATE TEMP TABLE m_f_rn AS SELECT *, row_number() OVER (ORDER BY org_row_id, match_priority, ror_id) - 1 AS rn FROM m_f",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE m_g_rn AS SELECT *, row_number() OVER (ORDER BY org_row_id, match_priority, ror_id) - 1 AS rn FROM m_g",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE m_r_rn AS SELECT *, row_number() OVER (ORDER BY org_row_id, match_priority, ror_id) - 1 AS rn FROM m_r",
     )
 
     DuckDB.execute(
         db,
         """
-CREATE TEMP TABLE m_best AS
+CREATE TEMP TABLE m_f_best AS
 SELECT *
 FROM (
-  SELECT
-    *,
-    row_number() OVER (PARTITION BY org_row_id ORDER BY match_priority, ror_id) AS rk
-  FROM m_idmap_all
-) t
-WHERE rk = 1
+  SELECT *, row_number() OVER (PARTITION BY org_row_id ORDER BY match_priority, ror_id) AS rk
+  FROM m_f
+) t WHERE rk = 1
 """,
-    )
-
-    q_all = DuckDB.execute(
-        db,
-        "SELECT COUNT(*)::BIGINT AS n, COALESCE(SUM(pair_cnt),0)::BIGINT AS w FROM m_idmap_all",
-    )
-    n_all = 0;
-    w_all = 0
-    for r in q_all
-        ;
-        n_all = Int(r[:n]);
-        w_all = Int(r[:w]);
-    end
-    print("\r", bar("match_candidates", n_all, n_all, t0));
-    println();
-    flush(stdout)
-
-    q_best = DuckDB.execute(
-        db,
-        "SELECT COUNT(*)::BIGINT AS n, COALESCE(SUM(pair_cnt),0)::BIGINT AS w FROM m_best",
-    )
-    n_best = 0;
-    w_best = 0
-    for r in q_best
-        ;
-        n_best = Int(r[:n]);
-        w_best = Int(r[:w]);
-    end
-    print("\r", bar("match_best", n_best, n_best, t0));
-    println();
-    flush(stdout)
-
-    DuckDB.execute(
-        db,
-        "CREATE TEMP TABLE matched_ids AS SELECT DISTINCT org_row_id FROM m_best",
     )
     DuckDB.execute(
         db,
         """
-CREATE TEMP TABLE still_unmatched AS
-SELECT
-  t.org_row_id,
-  t.organization_name_raw,
-  t.organization_name_norm,
-  t.organization_country_iso2,
-  t.pair_cnt
-FROM org_text_rn t
-LEFT JOIN matched_ids m USING(org_row_id)
-WHERE m.org_row_id IS NULL
+CREATE TEMP TABLE m_g_best AS
+SELECT *
+FROM (
+  SELECT *, row_number() OVER (PARTITION BY org_row_id ORDER BY match_priority, ror_id) AS rk
+  FROM m_g
+) t WHERE rk = 1
 """,
     )
-    q2 = DuckDB.execute(
-        db,
-        "SELECT COUNT(*)::BIGINT AS n, COALESCE(SUM(pair_cnt),0)::BIGINT AS w FROM still_unmatched",
-    )
-    n_unmatch = 0;
-    w_unmatch = 0
-    for r in q2
-        ;
-        n_unmatch = Int(r[:n]);
-        w_unmatch = Int(r[:w]);
-    end
-    print("\r", bar("residual", n_unmatch, n_unmatch, t0));
-    println();
-    flush(stdout)
-
     DuckDB.execute(
         db,
-        "CREATE TEMP TABLE m_all_rn AS SELECT *, row_number() OVER (ORDER BY org_row_id, match_priority, ror_id) - 1 AS rn FROM m_idmap_all",
-    )
-    DuckDB.execute(
-        db,
-        "CREATE TEMP TABLE m_best_rn AS SELECT *, row_number() OVER (ORDER BY org_row_id) - 1 AS rn FROM m_best",
-    )
-    DuckDB.execute(
-        db,
-        "CREATE TEMP TABLE u_rn AS SELECT *, row_number() OVER (ORDER BY org_row_id) - 1 AS rn FROM still_unmatched",
+        """
+CREATE TEMP TABLE m_r_best AS
+SELECT *
+FROM (
+  SELECT *, row_number() OVER (PARTITION BY org_row_id ORDER BY match_priority, ror_id) AS rk
+  FROM m_r
+) t WHERE rk = 1
+""",
     )
 
-    qga = DuckDB.execute(
+    qgf = DuckDB.execute(
         db,
-        "SELECT cast(floor(rn / $chunk_rows) as bigint) AS gid, count(*) AS cnt FROM m_all_rn GROUP BY 1 ORDER BY 1",
+        "SELECT cast(floor(rn / $chunk_rows) as bigint) AS gid, count(*) AS cnt FROM m_f_rn GROUP BY 1 ORDER BY 1",
     )
-    qgb = DuckDB.execute(
+    qgg = DuckDB.execute(
         db,
-        "SELECT cast(floor(rn / $chunk_rows) as bigint) AS gid, count(*) AS cnt FROM m_best_rn GROUP BY 1 ORDER BY 1",
+        "SELECT cast(floor(rn / $chunk_rows) as bigint) AS gid, count(*) AS cnt FROM m_g_rn GROUP BY 1 ORDER BY 1",
     )
-    qgu = DuckDB.execute(
+    qgr = DuckDB.execute(
         db,
-        "SELECT cast(floor(rn / $chunk_rows) as bigint) AS gid, count(*) AS cnt FROM u_rn GROUP BY 1 ORDER BY 1",
+        "SELECT cast(floor(rn / $chunk_rows) as bigint) AS gid, count(*) AS cnt FROM m_r_rn GROUP BY 1 ORDER BY 1",
     )
-    groups_all = Tuple{Int,Int}[];
-    groups_best = Tuple{Int,Int}[];
-    groups_u = Tuple{Int,Int}[]
-    for r in qga
+    groups_f = Tuple{Int,Int}[];
+    groups_g = Tuple{Int,Int}[];
+    groups_r = Tuple{Int,Int}[]
+    for r in qgf
         ;
-        push!(groups_all, (Int(r[:gid]), Int(r[:cnt])));
+        push!(groups_f, (Int(r[:gid]), Int(r[:cnt])));
     end
-    for r in qgb
+    for r in qgg
         ;
-        push!(groups_best, (Int(r[:gid]), Int(r[:cnt])));
+        push!(groups_g, (Int(r[:gid]), Int(r[:cnt])));
     end
-    for r in qgu
+    for r in qgr
         ;
-        push!(groups_u, (Int(r[:gid]), Int(r[:cnt])));
+        push!(groups_r, (Int(r[:gid]), Int(r[:cnt])));
     end
-    atotal = sum(last, groups_all; init = 0)
-    btotal = sum(last, groups_best; init = 0)
-    utotal = sum(last, groups_u; init = 0)
+    ftotal = sum(last, groups_f; init = 0)
+    gtotal = sum(last, groups_g; init = 0)
+    rtotal = sum(last, groups_r; init = 0)
 
     written = 0
-    for (gid, cnt) in groups_all
-        out_file = joinpath(out_match_all_dir, @sprintf("%04d.parquet", gid))
+    for (gid, cnt) in groups_f
+        out_file = joinpath(out_fundref_cand, @sprintf("%04d.parquet", gid))
         DuckDB.execute(
             db,
             """
 COPY (
   SELECT org_row_id, organization_name_raw, organization_name_norm, organization_country_iso2, pair_cnt,
          ror_id, match_source, source_value_norm, match_priority, confidence, match_rule, '$decided_at' AS decided_at
-  FROM m_all_rn
+  FROM m_f_rn
   WHERE cast(floor(rn / $chunk_rows) as bigint) = $gid
 ) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
 """,
         )
         written += cnt
-        print("\r", bar("write_candidates", written, atotal, t0));
+        print("\r", bar("write_fundref_candidates", written, ftotal, t0));
         flush(stdout)
     end
     println();
     flush(stdout)
 
     written = 0
-    for (gid, cnt) in groups_best
-        out_file = joinpath(out_match_best_dir, @sprintf("%04d.parquet", gid))
+    for (gid, cnt) in groups_g
+        out_file = joinpath(out_grid_cand, @sprintf("%04d.parquet", gid))
         DuckDB.execute(
             db,
             """
 COPY (
   SELECT org_row_id, organization_name_raw, organization_name_norm, organization_country_iso2, pair_cnt,
          ror_id, match_source, source_value_norm, match_priority, confidence, match_rule, '$decided_at' AS decided_at
-  FROM m_best_rn
+  FROM m_g_rn
   WHERE cast(floor(rn / $chunk_rows) as bigint) = $gid
 ) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
 """,
         )
         written += cnt
-        print("\r", bar("write_best", written, btotal, t0));
+        print("\r", bar("write_grid_candidates", written, gtotal, t0));
         flush(stdout)
     end
     println();
     flush(stdout)
 
-    uwritten = 0
-    for (gid, cnt) in groups_u
-        out_file = joinpath(out_unmatch_dir, @sprintf("%04d.parquet", gid))
+    written = 0
+    for (gid, cnt) in groups_r
+        out_file = joinpath(out_ror_cand, @sprintf("%04d.parquet", gid))
         DuckDB.execute(
             db,
             """
 COPY (
-  SELECT org_row_id, organization_name_raw, organization_name_norm, organization_country_iso2, pair_cnt, '$decided_at' AS decided_at
-  FROM u_rn
+  SELECT org_row_id, organization_name_raw, organization_name_norm, organization_country_iso2, pair_cnt,
+         ror_id, match_source, source_value_norm, match_priority, confidence, match_rule, '$decided_at' AS decided_at
+  FROM m_r_rn
   WHERE cast(floor(rn / $chunk_rows) as bigint) = $gid
 ) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
 """,
         )
-        uwritten += cnt
-        print("\r", bar("write_unmatched", uwritten, utotal, t0));
+        written += cnt
+        print("\r", bar("write_ror_candidates", written, rtotal, t0));
+        flush(stdout)
+    end
+    println();
+    flush(stdout)
+
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE m_f_best_rn AS SELECT *, row_number() OVER (ORDER BY org_row_id) - 1 AS rn FROM m_f_best",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE m_g_best_rn AS SELECT *, row_number() OVER (ORDER BY org_row_id) - 1 AS rn FROM m_g_best",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE m_r_best_rn AS SELECT *, row_number() OVER (ORDER BY org_row_id) - 1 AS rn FROM m_r_best",
+    )
+
+    qbf = DuckDB.execute(
+        db,
+        "SELECT cast(floor(rn / $chunk_rows) as bigint) AS gid, count(*) AS cnt FROM m_f_best_rn GROUP BY 1 ORDER BY 1",
+    )
+    qbg = DuckDB.execute(
+        db,
+        "SELECT cast(floor(rn / $chunk_rows) as bigint) AS gid, count(*) AS cnt FROM m_g_best_rn GROUP BY 1 ORDER BY 1",
+    )
+    qbr = DuckDB.execute(
+        db,
+        "SELECT cast(floor(rn / $chunk_rows) as bigint) AS gid, count(*) AS cnt FROM m_r_best_rn GROUP BY 1 ORDER BY 1",
+    )
+    groups_f_best = Tuple{Int,Int}[];
+    groups_g_best = Tuple{Int,Int}[];
+    groups_r_best = Tuple{Int,Int}[]
+    for r in qbf
+        ;
+        push!(groups_f_best, (Int(r[:gid]), Int(r[:cnt])));
+    end
+    for r in qbg
+        ;
+        push!(groups_g_best, (Int(r[:gid]), Int(r[:cnt])));
+    end
+    for r in qbr
+        ;
+        push!(groups_r_best, (Int(r[:gid]), Int(r[:cnt])));
+    end
+    fbest_total = sum(last, groups_f_best; init = 0)
+    gbest_total = sum(last, groups_g_best; init = 0)
+    rbest_total = sum(last, groups_r_best; init = 0)
+
+    written = 0
+    for (gid, cnt) in groups_f_best
+        out_file = joinpath(out_fundref_best, @sprintf("%04d.parquet", gid))
+        DuckDB.execute(
+            db,
+            """
+COPY (
+  SELECT org_row_id, organization_name_raw, organization_name_norm, organization_country_iso2, pair_cnt,
+         ror_id, match_source, source_value_norm, match_priority, confidence, match_rule, '$decided_at' AS decided_at
+  FROM m_f_best_rn
+  WHERE cast(floor(rn / $chunk_rows) as bigint) = $gid
+) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
+""",
+        )
+        written += cnt
+        print("\r", bar("write_fundref_best", written, fbest_total, t0));
+        flush(stdout)
+    end
+    println();
+    flush(stdout)
+
+    written = 0
+    for (gid, cnt) in groups_g_best
+        out_file = joinpath(out_grid_best, @sprintf("%04d.parquet", gid))
+        DuckDB.execute(
+            db,
+            """
+COPY (
+  SELECT org_row_id, organization_name_raw, organization_name_norm, organization_country_iso2, pair_cnt,
+         ror_id, match_source, source_value_norm, match_priority, confidence, match_rule, '$decided_at' AS decided_at
+  FROM m_g_best_rn
+  WHERE cast(floor(rn / $chunk_rows) as bigint) = $gid
+) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
+""",
+        )
+        written += cnt
+        print("\r", bar("write_grid_best", written, gbest_total, t0));
+        flush(stdout)
+    end
+    println();
+    flush(stdout)
+
+    written = 0
+    for (gid, cnt) in groups_r_best
+        out_file = joinpath(out_ror_best, @sprintf("%04d.parquet", gid))
+        DuckDB.execute(
+            db,
+            """
+COPY (
+  SELECT org_row_id, organization_name_raw, organization_name_norm, organization_country_iso2, pair_cnt,
+         ror_id, match_source, source_value_norm, match_priority, confidence, match_rule, '$decided_at' AS decided_at
+  FROM m_r_best_rn
+  WHERE cast(floor(rn / $chunk_rows) as bigint) = $gid
+) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
+""",
+        )
+        written += cnt
+        print("\r", bar("write_ror_best", written, rbest_total, t0));
         flush(stdout)
     end
     println();
@@ -506,10 +568,24 @@ COPY (
         db,
         "CREATE TEMP TABLE total_w AS SELECT COUNT(*) AS total_pairs_distinct, COALESCE(SUM(pair_cnt),0) AS total_pairs_weighted FROM org_text_rn",
     )
+
     DuckDB.execute(
         db,
-        "CREATE TEMP TABLE matched_w AS SELECT COUNT(*) AS matched_distinct, COALESCE(SUM(pair_cnt),0) AS matched_weighted FROM m_best",
+        "CREATE TEMP TABLE best_union AS SELECT org_row_id, pair_cnt FROM m_f_best UNION ALL SELECT org_row_id, pair_cnt FROM m_g_best UNION ALL SELECT org_row_id, pair_cnt FROM m_r_best",
     )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE best_union_dist AS SELECT DISTINCT org_row_id FROM best_union",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE matched_union AS SELECT COUNT(*) AS matched_distinct FROM best_union_dist",
+    )
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE matched_weighted AS SELECT COALESCE(SUM(o.pair_cnt),0) AS matched_weighted FROM best_union_dist d JOIN org_text_rn o USING(org_row_id)",
+    )
+
     DuckDB.execute(
         db,
         """
@@ -519,14 +595,38 @@ SELECT
   1 AS stage,
   (SELECT total_pairs_distinct FROM total_w) AS total_pairs_distinct,
   (SELECT total_pairs_weighted  FROM total_w) AS total_pairs_weighted,
-  (SELECT matched_distinct      FROM matched_w) AS matched_distinct,
-  (SELECT matched_weighted      FROM matched_w) AS matched_weighted,
-  ROUND(100.0 * (SELECT matched_weighted FROM matched_w) / NULLIF((SELECT total_pairs_weighted FROM total_w),0), 2) AS matched_pct_weighted
+  (SELECT matched_distinct FROM matched_union) AS matched_distinct,
+  (SELECT matched_weighted FROM matched_weighted) AS matched_weighted,
+  ROUND(100.0 * (SELECT matched_weighted FROM matched_weighted) / NULLIF((SELECT total_pairs_weighted FROM total_w),0), 2) AS matched_pct_weighted
 """,
     )
     DuckDB.execute(
         db,
-        "COPY audit TO '$(joinpath(audit_dir, "org_match_idmap.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)",
+        "COPY audit TO '$(joinpath(audit_dir, "stage1_summary.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)",
+    )
+
+    DuckDB.execute(
+        db,
+        "CREATE TEMP TABLE audit_src AS SELECT 'fundref'::VARCHAR AS match_source, COUNT(*) AS matched_distinct, COALESCE(SUM(pair_cnt),0) AS matched_weighted FROM m_f_best
+         UNION ALL SELECT 'grid', COUNT(*), COALESCE(SUM(pair_cnt),0) FROM m_g_best
+         UNION ALL SELECT 'ror',  COUNT(*), COALESCE(SUM(pair_cnt),0) FROM m_r_best",
+    )
+    DuckDB.execute(
+        db,
+        """
+CREATE TEMP TABLE audit_src2 AS
+SELECT
+  match_source,
+  matched_distinct,
+  matched_weighted,
+  ROUND(100.0 * matched_weighted / NULLIF((SELECT total_pairs_weighted FROM total_w),0), 2) AS matched_pct_weighted_source,
+  '$decided_at' AS decided_at
+FROM audit_src
+""",
+    )
+    DuckDB.execute(
+        db,
+        "COPY audit_src2 TO '$(joinpath(audit_dir, "stage1_by_source.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)",
     )
 
     DuckDB.close(db)
