@@ -13,7 +13,7 @@ services:
     volumes:
       - "..:/workspace"
       - "julia-depot:/opt/julia-depot"
-      - "/mnt/e/data/orcid:/workspace/data/orcid"
+      - "/mnt/e/data/orcid/source:/workspace/data/orcid/source"
     command: >
       bash -c "
         julia -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()' &&
