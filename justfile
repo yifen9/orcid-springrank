@@ -28,6 +28,7 @@ dev:
 ORCID_DATE := "2025_10"
 GEONAMES_DATE := "2024_03_10"
 ROR_DATE := "2025_10_28"
+RINGGOLD_DATE := "2019_06_08"
 
 ror-01:
 	julia --project=. scripts/external/ror/01_ingest_to_parquet.jl {{ROR_DATE}}
@@ -70,3 +71,9 @@ orcid-05c:
 
 orcid-05d:
 	julia --project=. scripts/orcid/05d_merge_city_matches.jl {{ORCID_DATE}} {{GEONAMES_DATE}}
+
+orcid-05e:
+	julia --project=. scripts/orcid/05e_resolve_org_ror_idmap.jl {{ORCID_DATE}} {{ROR_DATE}}
+
+orcid-05f:
+	julia --project=. scripts/orcid/05f_resolve_org_ringgold_isni.jl {{ORCID_DATE}} {{ROR_DATE}} {{RINGGOLD_DATE}}
