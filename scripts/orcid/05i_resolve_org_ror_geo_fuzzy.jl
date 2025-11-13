@@ -666,7 +666,24 @@ WHERE m.org_row_id IS NULL
 
     DuckDB.execute(
         db,
-        """
+        "CREATE TEMP TABLE unmatched5_rn AS SELECT *, row_number() OVER (ORDER BY org_row_id) - 1 AS rn FROM unmatched5",
+    )
+    qgu = DuckDB.execute(
+        db,
+        "SELECT CAST(FLOOR(rn / $chunk_rows) AS BIGINT) AS gid, COUNT(*) AS cnt FROM unmatched5_rn GROUP BY 1 ORDER BY 1",
+    )
+    groups_unmatched = Tuple{Int,Int}[]
+    for r in qgu
+        push!(groups_unmatched, (Int(r[:gid]), Int(r[:cnt])))
+    end
+    utotal = sum(last, groups_unmatched; init = 0)
+
+    written = 0
+    for (gid, cnt) in groups_unmatched
+        out_file = joinpath(out_unmatched5_dir, @sprintf("%04d.parquet", gid))
+        DuckDB.execute(
+            db,
+            """
 COPY (
   SELECT
     organization_country_iso2,
@@ -675,10 +692,17 @@ COPY (
     pair_cnt,
     org_row_id,
     '$decided_at' AS decided_at
-  FROM unmatched5
-) TO '$(joinpath(out_unmatched5_dir, "unmatched_stage5.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
+  FROM unmatched5_rn
+  WHERE CAST(FLOOR(rn / $chunk_rows) AS BIGINT) = $gid
+) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
 """,
-    )
+        )
+        written += cnt
+        print("\r", bar("write_unmatched_stage5", written, utotal, t0))
+        flush(stdout)
+    end
+    println()
+    flush(stdout)
 
     DuckDB.execute(
         db,
