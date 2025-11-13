@@ -83,3 +83,6 @@ orcid-05g:
 
 orcid-05h:
 	julia --project=. scripts/orcid/05h_resolve_org_ror_geo_exact.jl {{ORCID_DATE}} {{ROR_DATE}}
+
+orcid-05i:
+	julia --project=. scripts/orcid/05i_resolve_org_ror_geo_fuzzy.jl {{ORCID_DATE}} {{ROR_DATE}} {{GEONAMES_DATE}}
