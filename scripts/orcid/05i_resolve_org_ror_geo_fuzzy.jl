@@ -8,13 +8,13 @@ function bar(p::String, d::Int, t::Int, t0::Float64)
     w = 60
     k = t == 0 ? 0 : clamp(round(Int, w*pct÷100), 0, w)
     b = string(repeat('█', k), repeat(' ', w-k))
-    el = time()-t0
-    r = el/max(d, 1)
-    rm = max(t-d, 0)*r
+    el = time() - t0
+    r = el / max(d, 1)
+    rm = max(t - d, 0) * r
     s = round(Int, rm)
-    h = s÷3600
-    m = (s%3600)÷60
-    ss = s%60
+    h = s ÷ 3600
+    m = (s % 3600) ÷ 60
+    ss = s % 60
     @sprintf(
         "%s %3d%%|%s| %d/%d  ETA %02d:%02d:%02d (%.2f s/unit)",
         p,
@@ -48,7 +48,6 @@ function main()
     in_dim_org_raw_glob = string(joinpath(cur_root, "dim_org_raw"), "/*.parquet")
     in_unmatched_glob =
         string(joinpath(res_org_root, "merged", "unmatched_stage4"), "/*.parquet")
-    in_best4_glob = string(joinpath(res_org_root, "merged", "best_stage4"), "/*.parquet")
     in_city_best_glob = string(joinpath(res_city_root, "merged", "best"), "/*.parquet")
     in_ror_name = abspath(joinpath(ror_derived_root, "name_preferred.parquet"))
     in_ror_loc = abspath(joinpath(ror_parquet_root, "location.parquet"))
@@ -57,12 +56,10 @@ function main()
     out_src = joinpath(out_root, "sources")
     out_ror_geo_fuzzy_cand = joinpath(out_src, "ror_geo_fuzzy", "candidates")
     out_ror_geo_fuzzy_best = joinpath(out_src, "ror_geo_fuzzy", "best")
-    out_best5_dir = joinpath(out_root, "merged", "best_stage5")
     out_unmatched5_dir = joinpath(out_root, "merged", "unmatched_stage5")
     audit_dir = joinpath(out_root, "audit")
     mkpath(out_ror_geo_fuzzy_cand)
     mkpath(out_ror_geo_fuzzy_best)
-    mkpath(out_best5_dir)
     mkpath(out_unmatched5_dir)
     mkpath(audit_dir)
 
@@ -225,7 +222,7 @@ SELECT DISTINCT
 FROM org_base b
 JOIN org_city_geo g
   ON g.organization_country_iso2 = b.organization_country_iso2
- AND g.organization_name_raw    = b.organization_name_raw
+ AND g.organization_name_raw     = b.organization_name_raw
 WHERE g.city_geoname_id IS NOT NULL
   AND b.organization_name_norm IS NOT NULL
 """,
@@ -396,6 +393,7 @@ FROM org_geo_filtered
         "CREATE INDEX idx_org_geo ON org_geo_tok(organization_country_iso2, city_geoname_id)",
     )
     DuckDB.execute(db, "CREATE INDEX idx_ror_geo ON ror_geo(country_code, city_geoname_id)")
+
     DuckDB.execute(
         db,
         """
@@ -416,7 +414,6 @@ JOIN ror_geo r
  AND r.city_geoname_id = o.city_geoname_id
 """,
     )
-
     q_c = DuckDB.execute(db, "SELECT COUNT(*)::BIGINT AS n FROM cand")
     c_n = 0
     for r in q_c
@@ -487,10 +484,12 @@ SELECT
   organization_country_iso2,
   pair_cnt,
   ror_id,
+  inter_sz,
+  org_len,
+  conf,
   'ror_geo_fuzzy'::VARCHAR AS match_source,
   ''::VARCHAR AS source_value_norm,
   4 AS match_priority,
-  conf AS confidence,
   2 AS match_rule
 FROM scored2
 WHERE inter_sz > 0
@@ -507,17 +506,19 @@ SELECT
   organization_country_iso2,
   pair_cnt,
   ror_id,
+  inter_sz,
+  org_len,
+  conf,
   'ror_geo_fuzzy'::VARCHAR AS match_source,
   ''::VARCHAR AS source_value_norm,
   4 AS match_priority,
-  conf AS confidence,
   2 AS match_rule
 FROM (
   SELECT
     *,
     row_number() OVER (PARTITION BY org_row_id ORDER BY conf DESC, inter_sz DESC, ror_id) AS rk
   FROM scored2
-  WHERE inter_sz >= 2 AND conf >= 0.6
+  WHERE inter_sz > 0
 ) t
 WHERE rk = 1
 """,
@@ -583,10 +584,12 @@ COPY (
     organization_country_iso2,
     pair_cnt,
     ror_id,
+    inter_sz,
+    org_len,
+    conf AS confidence,
     match_source,
     source_value_norm,
     match_priority,
-    confidence,
     match_rule,
     '$decided_at' AS decided_at
   FROM m_all_rn
@@ -615,10 +618,12 @@ COPY (
     organization_country_iso2,
     pair_cnt,
     ror_id,
+    inter_sz,
+    org_len,
+    conf AS confidence,
     match_source,
     source_value_norm,
     match_priority,
-    confidence,
     match_rule,
     '$decided_at' AS decided_at
   FROM m_best_rn
@@ -636,110 +641,42 @@ COPY (
     DuckDB.execute(
         db,
         """
-CREATE TEMP TABLE best4 AS
-SELECT
-  org_row_id,
-  organization_name_raw,
-  organization_name_norm,
-  organization_country_iso2,
-  pair_cnt,
-  ror_id,
-  match_source,
-  source_value_norm,
-  match_priority,
-  confidence,
-  match_rule
-FROM read_parquet('$in_best4_glob')
-""",
-    )
-    q_b4 = DuckDB.execute(db, "SELECT COUNT(*)::BIGINT AS n FROM best4")
-    b4_n = 0
-    for r in q_b4
-        b4_n = Int(r[:n])
-    end
-    print("\r", bar("materialize_best_stage4", b4_n, b4_n, t0))
-    println()
-    flush(stdout)
-
-    DuckDB.execute(
-        db,
-        """
-CREATE TEMP TABLE best5 AS
-SELECT
-  org_row_id,
-  organization_name_raw,
-  organization_name_norm,
-  organization_country_iso2,
-  pair_cnt,
-  ror_id,
-  match_source,
-  source_value_norm,
-  match_priority,
-  confidence,
-  match_rule
-FROM best4
-UNION ALL
-SELECT
-  org_row_id,
-  organization_name_raw,
-  organization_name_norm,
-  organization_country_iso2,
-  pair_cnt,
-  ror_id,
-  match_source,
-  source_value_norm,
-  match_priority,
-  confidence,
-  match_rule
-FROM m_best
-""",
-    )
-    q_b5 = DuckDB.execute(db, "SELECT COUNT(*)::BIGINT AS n FROM best5")
-    b5_n = 0
-    for r in q_b5
-        b5_n = Int(r[:n])
-    end
-    print("\r", bar("materialize_best_stage5", b5_n, b5_n, t0))
-    println()
-    flush(stdout)
-
-    DuckDB.execute(
-        db,
-        """
 CREATE TEMP TABLE unmatched5 AS
-SELECT u.org_row_id
-FROM unmatched u
-LEFT JOIN m_best b USING(org_row_id)
-WHERE b.org_row_id IS NULL
+SELECT
+  b.org_row_id,
+  b.organization_country_iso2,
+  b.organization_name_raw,
+  b.organization_name_norm,
+  b.pair_cnt
+FROM org_base b
+LEFT JOIN m_best m USING(org_row_id)
+WHERE m.org_row_id IS NULL
 """,
     )
-    q_u5 = DuckDB.execute(db, "SELECT COUNT(*)::BIGINT AS n FROM unmatched5")
-    u5_n = 0
-    for r in q_u5
-        u5_n = Int(r[:n])
+    q_um5 = DuckDB.execute(
+        db,
+        "SELECT COUNT(*)::BIGINT AS n, COALESCE(SUM(pair_cnt),0)::BIGINT AS w FROM unmatched5",
+    )
+    um5_n = 0
+    um5_w = 0
+    for r in q_um5
+        um5_n = Int(r[:n])
+        um5_w = Int(r[:w])
     end
-    print("\r", bar("materialize_unmatched_stage5", u5_n, u5_n, t0))
-    println()
-    flush(stdout)
 
     DuckDB.execute(
         db,
-        "CREATE TEMP TABLE total_w AS SELECT $tot_pairs::BIGINT AS total_pairs_distinct, $tot_w::BIGINT AS total_pairs_weighted",
-    )
-    DuckDB.execute(
-        db,
         """
-CREATE TEMP TABLE matched_dist5 AS
-SELECT COUNT(*)::BIGINT AS matched_distinct
-FROM best5
-""",
-    )
-    DuckDB.execute(
-        db,
-        """
-CREATE TEMP TABLE matched_weighted5 AS
-SELECT COALESCE(SUM(pair_cnt),0)::BIGINT AS matched_weighted
-FROM best5
+COPY (
+  SELECT
+    organization_country_iso2,
+    organization_name_raw,
+    organization_name_norm,
+    pair_cnt,
+    org_row_id,
+    '$decided_at' AS decided_at
+  FROM unmatched5
+) TO '$(joinpath(out_unmatched5_dir, "unmatched_stage5.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
 """,
     )
 
@@ -750,11 +687,11 @@ CREATE TEMP TABLE audit AS
 SELECT
   '$decided_at' AS decided_at,
   5 AS stage,
-  (SELECT total_pairs_distinct FROM total_w) AS total_pairs_distinct,
-  (SELECT total_pairs_weighted  FROM total_w) AS total_pairs_weighted,
-  (SELECT matched_distinct      FROM matched_dist5) AS matched_distinct,
-  (SELECT matched_weighted      FROM matched_weighted5) AS matched_weighted,
-  ROUND(100.0 * (SELECT matched_weighted FROM matched_weighted5) / NULLIF((SELECT total_pairs_weighted FROM total_w),0), 2) AS matched_pct_weighted
+  $tot_pairs::BIGINT AS total_pairs_distinct,
+  $tot_w::BIGINT AS total_pairs_weighted,
+  ($tot_pairs::BIGINT - $um5_n::BIGINT) AS matched_distinct,
+  ($tot_w::BIGINT - $um5_w::BIGINT) AS matched_weighted,
+  ROUND(100.0 * ($tot_w::DOUBLE - $um5_w::DOUBLE) / NULLIF($tot_w::DOUBLE,0), 2) AS matched_pct_weighted
 """,
     )
     DuckDB.execute(
@@ -762,15 +699,42 @@ SELECT
         "COPY audit TO '$(joinpath(audit_dir, "stage5_summary.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)",
     )
 
+    best_fundref_glob = string(joinpath(out_src, "fundref", "best"), "/*.parquet")
+    best_grid_glob = string(joinpath(out_src, "grid", "best"), "/*.parquet")
+    best_ror_glob = string(joinpath(out_src, "ror", "best"), "/*.parquet")
+    best_ringgold_glob = string(joinpath(out_src, "ringgold_isni", "best"), "/*.parquet")
+    best_ror_geo_exact_glob =
+        string(joinpath(out_src, "ror_geo_exact", "best"), "/*.parquet")
+    best_ror_geo_fuzzy_glob =
+        string(joinpath(out_src, "ror_geo_fuzzy", "best"), "/*.parquet")
+
+    DuckDB.execute(
+        db,
+        """
+CREATE TEMP TABLE best_all AS
+SELECT match_source, org_row_id, pair_cnt
+FROM read_parquet('$best_fundref_glob')
+UNION ALL
+SELECT match_source, org_row_id, pair_cnt FROM read_parquet('$best_grid_glob')
+UNION ALL
+SELECT match_source, org_row_id, pair_cnt FROM read_parquet('$best_ror_glob')
+UNION ALL
+SELECT match_source, org_row_id, pair_cnt FROM read_parquet('$best_ringgold_glob')
+UNION ALL
+SELECT match_source, org_row_id, pair_cnt FROM read_parquet('$best_ror_geo_exact_glob')
+UNION ALL
+SELECT match_source, org_row_id, pair_cnt FROM read_parquet('$best_ror_geo_fuzzy_glob')
+""",
+    )
     DuckDB.execute(
         db,
         """
 CREATE TEMP TABLE audit_src AS
 SELECT
   match_source,
-  COUNT(*)::BIGINT AS matched_distinct,
-  COALESCE(SUM(pair_cnt),0)::BIGINT AS matched_weighted
-FROM best5
+  COUNT(DISTINCT org_row_id) AS matched_distinct,
+  COALESCE(SUM(pair_cnt),0) AS matched_weighted
+FROM best_all
 GROUP BY match_source
 """,
     )
@@ -782,7 +746,7 @@ SELECT
   match_source,
   matched_distinct,
   matched_weighted,
-  ROUND(100.0 * matched_weighted / NULLIF((SELECT total_pairs_weighted FROM total_w),0), 2) AS matched_pct_weighted_source,
+  ROUND(100.0 * matched_weighted / NULLIF($tot_w::DOUBLE,0), 2) AS matched_pct_weighted_source,
   '$decided_at' AS decided_at
 FROM audit_src
 """,
@@ -791,87 +755,6 @@ FROM audit_src
         db,
         "COPY audit_src2 TO '$(joinpath(audit_dir, "stage5_by_source.parquet"))' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)",
     )
-
-    DuckDB.execute(
-        db,
-        "CREATE TEMP TABLE best5_rn AS SELECT *, row_number() OVER (ORDER BY org_row_id, match_priority, ror_id) - 1 AS rn FROM best5",
-    )
-    qg5 = DuckDB.execute(
-        db,
-        "SELECT CAST(FLOOR(rn / $chunk_rows) AS BIGINT) AS gid, COUNT(*) AS cnt FROM best5_rn GROUP BY 1 ORDER BY 1",
-    )
-    groups_b5 = Tuple{Int,Int}[]
-    for r in qg5
-        push!(groups_b5, (Int(r[:gid]), Int(r[:cnt])))
-    end
-    b5_total = sum(last, groups_b5; init = 0)
-
-    written = 0
-    for (gid, cnt) in groups_b5
-        out_file = joinpath(out_best5_dir, @sprintf("%04d.parquet", gid))
-        DuckDB.execute(
-            db,
-            """
-COPY (
-  SELECT
-    org_row_id,
-    organization_name_raw,
-    organization_name_norm,
-    organization_country_iso2,
-    pair_cnt,
-    ror_id,
-    match_source,
-    source_value_norm,
-    match_priority,
-    confidence,
-    match_rule,
-    '$decided_at' AS decided_at
-  FROM best5_rn
-  WHERE CAST(FLOOR(rn / $chunk_rows) AS BIGINT) = $gid
-) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
-""",
-        )
-        written += cnt
-        print("\r", bar("write_best_stage5", written, b5_total, t0))
-        flush(stdout)
-    end
-    println()
-    flush(stdout)
-
-    DuckDB.execute(
-        db,
-        "CREATE TEMP TABLE unmatched5_rn AS SELECT org_row_id, row_number() OVER (ORDER BY org_row_id) - 1 AS rn FROM unmatched5",
-    )
-    qgu5 = DuckDB.execute(
-        db,
-        "SELECT CAST(FLOOR(rn / $chunk_rows) AS BIGINT) AS gid, COUNT(*) AS cnt FROM unmatched5_rn GROUP BY 1 ORDER BY 1",
-    )
-    groups_u5 = Tuple{Int,Int}[]
-    for r in qgu5
-        push!(groups_u5, (Int(r[:gid]), Int(r[:cnt])))
-    end
-    u5_total = sum(last, groups_u5; init = 0)
-
-    written = 0
-    for (gid, cnt) in groups_u5
-        out_file = joinpath(out_unmatched5_dir, @sprintf("%04d.parquet", gid))
-        DuckDB.execute(
-            db,
-            """
-COPY (
-  SELECT
-    org_row_id
-  FROM unmatched5_rn
-  WHERE CAST(FLOOR(rn / $chunk_rows) AS BIGINT) = $gid
-) TO '$out_file' WITH (FORMAT PARQUET, COMPRESSION 'zstd', OVERWRITE_OR_IGNORE TRUE)
-""",
-        )
-        written += cnt
-        print("\r", bar("write_unmatched_stage5", written, u5_total, t0))
-        flush(stdout)
-    end
-    println()
-    flush(stdout)
 
     DuckDB.close(db)
     println("done")
