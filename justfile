@@ -79,4 +79,7 @@ orcid-05f:
 	julia --project=. scripts/orcid/05f_resolve_org_idmap_ringgold_isni.jl {{ORCID_DATE}} {{ROR_DATE}} {{RINGGOLD_DATE}}
 
 orcid-05g:
-	julia --project=. scripts/orcid/05g_merge_org_idmap_stage12.jl {{ORCID_DATE}}
+	julia --project=. scripts/orcid/05g_merge_org_idmap_matches.jl {{ORCID_DATE}}
+
+orcid-05h:
+	julia --project=. scripts/orcid/05h_resolve_org_ror_geo_exact.jl {{ORCID_DATE}} {{ROR_DATE}}
