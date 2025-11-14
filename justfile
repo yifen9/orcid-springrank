@@ -38,7 +38,7 @@ ror-02:
 	julia --project=. scripts/external/ror/02_build_derived.jl {{ROR_DATE}}
 
 role-01:
-	julia --project=. scripts/external/ror/01_normalize_map.jl {{ROLE_TITLE_DATE}}
+	julia --project=. scripts/external/role_title/01_normalize_map.jl {{ROLE_TITLE_DATE}}
 
 orcid-01:
 	julia --project=. scripts/orcid/01_extract_source_to_ndjson.jl {{ORCID_DATE}}
