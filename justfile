@@ -93,3 +93,6 @@ orcid-05i:
 
 orcid-05j:
 	julia --project=. scripts/orcid/05j_merge_org_best_by_source.jl {{ORCID_DATE}}
+
+orcid-05k:
+	julia --project=. scripts/orcid/05k_resolve_role_title_map.jl {{ORCID_DATE}} {{ROLE_TITLE_DATE}}
