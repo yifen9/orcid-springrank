@@ -29,12 +29,16 @@ ORCID_DATE := "2025_10"
 GEONAMES_DATE := "2024_03_10"
 ROR_DATE := "2025_10_28"
 RINGGOLD_DATE := "2019_06_08"
+ROLE_TITLE_DATE := "2025_11_14"
 
 ror-01:
 	julia --project=. scripts/external/ror/01_ingest_to_parquet.jl {{ROR_DATE}}
 
 ror-02:
 	julia --project=. scripts/external/ror/02_build_derived.jl {{ROR_DATE}}
+
+role-01:
+	julia --project=. scripts/external/ror/01_normalize_map.jl {{ROLE_TITLE_DATE}}
 
 orcid-01:
 	julia --project=. scripts/orcid/01_extract_source_to_ndjson.jl {{ORCID_DATE}}
